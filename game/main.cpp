@@ -90,7 +90,7 @@ struct PlayerCharacter final : ObjectBehavior
     }
 };
 
-struct Enemy final : ObjectBehavior
+struct Bot final : ObjectBehavior
 {
     virtual void update(Object &object) final
     {
@@ -197,12 +197,12 @@ int main()
     Direction lastDirectionPressedDown = Direction::Down;
     std::array<bool, 4> isDirectionKeyPressed = {};
 
-    Object wolf;
-    wolf.Sprite.setTexture(wolfsheet1Texture);
-    wolf.Cutter = wolfCutter;
-    wolf.SpriteSize = sf::Vector2i(64, 64);
-    wolf.Position = sf::Vector2f(400, 400);
-    wolf.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed);
+    Object player;
+    player.Sprite.setTexture(wolfsheet1Texture);
+    player.Cutter = wolfCutter;
+    player.SpriteSize = sf::Vector2i(64, 64);
+    player.Position = sf::Vector2f(400, 400);
+    player.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed);
 
     std::vector<Object> enemies;
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
@@ -215,10 +215,10 @@ int main()
         enemy.Position.y = static_cast<float>(std::rand() % 800);
         enemy.Dir = static_cast<Direction>(std::rand() % 4);
         enemy.VerticalOffset = enemyVerticalOffset[i];
-        enemy.Behavior = std::make_unique<Enemy>();
+        enemy.Behavior = std::make_unique<Bot>();
     }
 
-    Camera camera{wolf.Position};
+    Camera camera{player.Position};
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -295,9 +295,9 @@ int main()
 
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
-        updateObject(wolf, deltaTime);
-        camera.Center = wolf.Position;
-        spritesToDrawInZOrder.emplace_back(&wolf.Sprite);
+        updateObject(player, deltaTime);
+        camera.Center = player.Position;
+        spritesToDrawInZOrder.emplace_back(&player.Sprite);
 
         for (Object &enemy : enemies)
         {
@@ -318,7 +318,7 @@ int main()
             sf::CircleShape circle(1);
             circle.setOutlineColor(sf::Color(0, 255, 0));
             circle.setFillColor(sf::Color(0, 255, 0));
-            circle.setPosition(wolf.Position);
+            circle.setPosition(player.Position);
             camera.draw(window, circle);
         }
         for (const Object &enemy : enemies)
