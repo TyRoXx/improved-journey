@@ -1,6 +1,7 @@
 #include "imgui-SFML.h"
 #include "imgui.h"
 #include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
@@ -83,6 +84,8 @@ sf::Vector2f normalize(const sf::Vector2f &source)
 
 struct ObjectBehavior;
 
+using Health = sf::Int32;
+
 struct Object
 {
     sf::Sprite Sprite;
@@ -94,7 +97,23 @@ struct Object
     sf::Int32 VerticalOffset = 0;
     std::unique_ptr<ObjectBehavior> Behavior;
     bool isMoving = false;
+    Health currentHealth = 1;
+    Health maximumHealth = 1;
 };
+
+void inflictDamage(Object &defender, const Health damage)
+{
+    defender.currentHealth -= damage;
+    if (defender.currentHealth < 0)
+    {
+        defender.currentHealth = 0;
+    }
+}
+
+bool isDead(const Object &object)
+{
+    return (object.currentHealth == 0);
+}
 
 struct ObjectBehavior
 {
@@ -102,7 +121,7 @@ struct ObjectBehavior
     {
     }
 
-    virtual void update(Object &object, Object &player) = 0;
+    virtual void update(Object &object, Object &player, const sf::Time &deltaTime) = 0;
 };
 
 struct PlayerCharacter final : ObjectBehavior
@@ -114,10 +133,18 @@ struct PlayerCharacter final : ObjectBehavior
     {
     }
 
-    virtual void update(Object &object, Object &player) final
+    virtual void update(Object &object, Object &player, const sf::Time &deltaTime) final
     {
         assert(&object == &player);
         (void)player;
+        (void)deltaTime;
+
+        if (isDead(object))
+        {
+            object.isMoving = false;
+            return;
+        }
+
         sf::Vector2f direction;
         for (sf::Int32 i = 0; i < 4; ++i)
         {
@@ -148,12 +175,12 @@ bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, con
 
 struct Bot final : ObjectBehavior
 {
-    virtual void update(Object &object, Object &player) final
+    virtual void update(Object &object, Object &player, const sf::Time &deltaTime) final
     {
         switch (_state)
         {
         case State::MovingAround:
-            if (isWithinDistance(object.Position, player.Position, 400))
+            if (isWithinDistance(object.Position, player.Position, 400) && !isDead(player))
             {
                 _state = State::Chasing;
                 _target = &player;
@@ -170,7 +197,7 @@ struct Bot final : ObjectBehavior
         case State::Chasing:
             if (isWithinDistance(object.Position, _target->Position, 80))
             {
-                object.isMoving = false;
+                _state = State::Attacking;
                 break;
             }
             if (isWithinDistance(object.Position, _target->Position, 600))
@@ -185,6 +212,26 @@ struct Bot final : ObjectBehavior
                 _target = nullptr;
             }
             break;
+
+        case State::Attacking:
+            object.isMoving = false;
+            if (!isWithinDistance(object.Position, _target->Position, 100))
+            {
+                _state = State::Chasing;
+                break;
+            }
+            _sinceLastAttack += deltaTime.asMilliseconds();
+            constexpr sf::Int32 attackDelay = 4000;
+            while (_sinceLastAttack >= attackDelay)
+            {
+                inflictDamage(player, 5);
+                _sinceLastAttack -= attackDelay;
+            }
+            if (isDead(player))
+            {
+                _state = State::MovingAround;
+            }
+            break;
         }
     }
 
@@ -192,11 +239,13 @@ private:
     enum class State
     {
         MovingAround,
-        Chasing
+        Chasing,
+        Attacking
     };
 
     State _state = State::MovingAround;
     Object *_target = nullptr;
+    sf::Int32 _sinceLastAttack = 0;
 };
 
 struct Camera
@@ -218,11 +267,19 @@ struct Camera
         moved.move(sf::Vector2f(window.getSize()) * 0.5f);
         window.draw(moved);
     }
+
+    void draw(sf::RenderWindow &window, const sf::RectangleShape &shape)
+    {
+        sf::RectangleShape moved(shape);
+        moved.move(-Center);
+        moved.move(sf::Vector2f(window.getSize()) * 0.5f);
+        window.draw(moved);
+    }
 };
 
 void updateObject(Object &object, Object &player, const sf::Time &deltaTime)
 {
-    object.Behavior->update(object, player);
+    object.Behavior->update(object, player, deltaTime);
 
     if (object.isMoving)
     {
@@ -245,6 +302,34 @@ void updateObject(Object &object, Object &player, const sf::Time &deltaTime)
 float bottomOfSprite(const sf::Sprite &sprite)
 {
     return (sprite.getPosition().y + static_cast<float>(sprite.getTextureRect().height));
+}
+
+void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &object)
+{
+    if (object.currentHealth == object.maximumHealth)
+    {
+        return;
+    }
+    constexpr sf::Int32 width = 24;
+    constexpr sf::Int32 height = 4;
+    const float x = object.Position.x - width / 2;
+    const float y = object.Position.y - static_cast<float>(object.Sprite.getTextureRect().height);
+    const float greenPortion =
+        static_cast<float>(object.currentHealth) / static_cast<float>(object.maximumHealth) * static_cast<float>(width);
+    {
+        sf::RectangleShape green;
+        green.setPosition(sf::Vector2f(x, y));
+        green.setFillColor(sf::Color::Green);
+        green.setSize(sf::Vector2f(greenPortion, height));
+        camera.draw(window, green);
+    }
+    {
+        sf::RectangleShape red;
+        red.setPosition(sf::Vector2f(x + greenPortion, y));
+        red.setFillColor(sf::Color::Red);
+        red.setSize(sf::Vector2f(width - greenPortion, height));
+        camera.draw(window, red);
+    }
 }
 
 int main()
@@ -300,6 +385,7 @@ int main()
     player.SpriteSize = sf::Vector2i(64, 64);
     player.Position = sf::Vector2f(400, 400);
     player.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed);
+    player.currentHealth = player.maximumHealth = 100;
 
     std::vector<Object> enemies;
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
@@ -405,6 +491,12 @@ int main()
         for (const sf::Sprite *const sprite : spritesToDrawInZOrder)
         {
             camera.draw(window, *sprite);
+        }
+
+        drawHealthBar(window, camera, player);
+        for (const Object &enemy : enemies)
+        {
+            drawHealthBar(window, camera, enemy);
         }
 
         {
