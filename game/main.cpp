@@ -135,25 +135,32 @@ bool isDead(const Object &object)
     return (object.currentHealth == 0);
 }
 
+struct World
+{
+    std::vector<Object> enemies;
+};
+
 struct ObjectBehavior
 {
     virtual ~ObjectBehavior()
     {
     }
 
-    virtual void update(Object &object, Object &player, const sf::Time &deltaTime) = 0;
+    virtual void update(Object &object, Object &player, World &world, const sf::Time &deltaTime) = 0;
 };
 
 struct PlayerCharacter final : ObjectBehavior
 {
     const std::array<bool, 4> &isDirectionKeyPressed;
+    bool &isAttackPressed;
 
-    explicit PlayerCharacter(const std::array<bool, 4> &isDirectionKeyPressed)
+    explicit PlayerCharacter(const std::array<bool, 4> &isDirectionKeyPressed, bool &isAttackPressed)
         : isDirectionKeyPressed(isDirectionKeyPressed)
+        , isAttackPressed(isAttackPressed)
     {
     }
 
-    virtual void update(Object &object, Object &player, const sf::Time &deltaTime) final
+    virtual void update(Object &object, Object &player, World &world, const sf::Time &deltaTime) final
     {
         assert(&object == &player);
         (void)player;
@@ -176,7 +183,18 @@ struct PlayerCharacter final : ObjectBehavior
         }
         if (direction == sf::Vector2f())
         {
-            object.Animation = ObjectAnimation::Standing;
+            if (isAttackPressed)
+            {
+                object.Animation = ObjectAnimation::Attacking;
+                for (Object &enemy : world.enemies)
+                {
+                    inflictDamage(enemy, 1);
+                }
+            }
+            else
+            {
+                object.Animation = ObjectAnimation::Standing;
+            }
         }
         else
         {
@@ -195,8 +213,14 @@ bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, con
 
 struct Bot final : ObjectBehavior
 {
-    virtual void update(Object &object, Object &player, const sf::Time &deltaTime) final
+    virtual void update(Object &object, Object &player, World &world, const sf::Time &deltaTime) final
     {
+        (void)world;
+        if (isDead(object))
+        {
+            object.Animation = ObjectAnimation::Standing;
+            return;
+        }
         switch (_state)
         {
         case State::MovingAround:
@@ -309,9 +333,9 @@ struct Camera
     }
 };
 
-void updateObject(Object &object, Object &player, const sf::Time &deltaTime)
+void updateObject(Object &object, Object &player, World &world, const sf::Time &deltaTime)
 {
-    object.Behavior->update(object, player, deltaTime);
+    object.Behavior->update(object, player, world, deltaTime);
 
     switch (object.Animation)
     {
@@ -436,19 +460,20 @@ int main()
     }
 
     std::array<bool, 4> isDirectionKeyPressed = {};
+    bool isAttackPressed = false;
 
     Object player;
     player.Sprite.setTexture(wolfsheet1Texture);
     player.Cutter = wolfCutter;
     player.SpriteSize = sf::Vector2i(64, 64);
     player.Position = sf::Vector2f(400, 400);
-    player.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed);
+    player.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed, isAttackPressed);
     player.currentHealth = player.maximumHealth = 100;
 
-    std::vector<Object> enemies;
+    World world;
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
     {
-        Object &enemy = enemies.emplace_back();
+        Object &enemy = world.enemies.emplace_back();
         enemy.Sprite.setTexture(enemyTextures[i]);
         enemy.Cutter = enemyTextureCutters[i];
         enemy.SpriteSize = enemySizes[i];
@@ -457,6 +482,7 @@ int main()
         enemy.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
         enemy.VerticalOffset = enemyVerticalOffset[i];
         enemy.Behavior = std::make_unique<Bot>();
+        enemy.currentHealth = enemy.maximumHealth = 300;
     }
 
     Camera camera{player.Position};
@@ -489,6 +515,9 @@ int main()
                 case sf::Keyboard::D:
                     isDirectionKeyPressed[static_cast<size_t>(Direction::Right)] = true;
                     break;
+                case sf::Keyboard::Space:
+                    isAttackPressed = true;
+                    break;
                 default:
                     break;
                 }
@@ -508,6 +537,9 @@ int main()
                     break;
                 case sf::Keyboard::D:
                     isDirectionKeyPressed[static_cast<size_t>(Direction::Right)] = false;
+                    break;
+                case sf::Keyboard::Space:
+                    isAttackPressed = false;
                     break;
                 default:
                     break;
@@ -532,13 +564,13 @@ int main()
 
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
-        updateObject(player, player, deltaTime);
+        updateObject(player, player, world, deltaTime);
         camera.Center = player.Position;
         spritesToDrawInZOrder.emplace_back(&player.Sprite);
 
-        for (Object &enemy : enemies)
+        for (Object &enemy : world.enemies)
         {
-            updateObject(enemy, player, deltaTime);
+            updateObject(enemy, player, world, deltaTime);
             spritesToDrawInZOrder.emplace_back(&enemy.Sprite);
         }
 
@@ -552,7 +584,7 @@ int main()
         }
 
         drawHealthBar(window, camera, player);
-        for (const Object &enemy : enemies)
+        for (const Object &enemy : world.enemies)
         {
             drawHealthBar(window, camera, enemy);
         }
@@ -564,7 +596,7 @@ int main()
             circle.setPosition(player.Position);
             camera.draw(window, circle);
         }
-        for (const Object &enemy : enemies)
+        for (const Object &enemy : world.enemies)
         {
             sf::CircleShape circle(1);
             circle.setOutlineColor(sf::Color(255, 0, 0));
