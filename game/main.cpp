@@ -218,7 +218,9 @@ int main()
 
             object.AnimationTime += deltaTime.asMilliseconds();
             object.Sprite.setTextureRect(object.Cutter(isMoving, object.AnimationTime, object.Dir, object.SpriteSize));
-            object.Sprite.setPosition(object.Position);
+            // the position of an object is at the bottom center of the sprite (on the ground)
+            object.Sprite.setPosition(object.Position - sf::Vector2f(static_cast<float>(object.SpriteSize.x / 2),
+                                                                     static_cast<float>(object.SpriteSize.y)));
         };
         updateObject(wolf, isWolfMoving, deltaTime);
         spritesToDrawInZOrder.emplace_back(&wolf.Sprite);
@@ -239,6 +241,22 @@ int main()
         for (const sf::Sprite *const sprite : spritesToDrawInZOrder)
         {
             window.draw(*sprite);
+        }
+
+        {
+            sf::CircleShape circle(1);
+            circle.setOutlineColor(sf::Color(0, 255, 0));
+            circle.setFillColor(sf::Color(0, 255, 0));
+            circle.setPosition(wolf.Position);
+            window.draw(circle);
+        }
+        for (const Object &enemy : enemies)
+        {
+            sf::CircleShape circle(1);
+            circle.setOutlineColor(sf::Color(255, 0, 0));
+            circle.setFillColor(sf::Color(255, 0, 0));
+            circle.setPosition(enemy.Position);
+            window.draw(circle);
         }
 
         ImGui::SFML::Render(window);
