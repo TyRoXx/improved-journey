@@ -62,14 +62,28 @@ Direction DirectionFromVector(const sf::Vector2f &vector)
     return Direction::Left;
 }
 
-using TextureCutter = sf::IntRect(const bool isMoving, const sf::Int32 animationTime, const Direction direction,
+enum class ObjectAnimation
+{
+    Standing,
+    Walking
+};
+
+using TextureCutter = sf::IntRect(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
                                   const sf::Vector2i &size);
 
-sf::IntRect cutEnemyTexture(const bool isMoving, const sf::Int32 animationTime, const Direction direction,
+sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const sf::Int32 animationTime, const Direction direction,
                             const sf::Vector2i &size)
 {
-    return sf::IntRect((size.x * ((animationTime / (isMoving ? 150 : 300)) % 3)), size.y * static_cast<int>(direction),
-                       size.x, size.y);
+    sf::Int32 speed = 150;
+    switch (animation)
+    {
+    case ObjectAnimation::Standing:
+        speed = 300;
+        break;
+    case ObjectAnimation::Walking:
+        break;
+    }
+    return sf::IntRect((size.x * ((animationTime / speed) % 3)), size.y * static_cast<int>(direction), size.x, size.y);
 };
 
 sf::Vector2f normalize(const sf::Vector2f &source)
@@ -96,7 +110,7 @@ struct Object
     sf::Vector2i SpriteSize;
     sf::Int32 VerticalOffset = 0;
     std::unique_ptr<ObjectBehavior> Behavior;
-    bool isMoving = false;
+    ObjectAnimation Animation = ObjectAnimation::Standing;
     Health currentHealth = 1;
     Health maximumHealth = 1;
 };
@@ -141,7 +155,7 @@ struct PlayerCharacter final : ObjectBehavior
 
         if (isDead(object))
         {
-            object.isMoving = false;
+            object.Animation = ObjectAnimation::Standing;
             return;
         }
 
@@ -156,11 +170,11 @@ struct PlayerCharacter final : ObjectBehavior
         }
         if (direction == sf::Vector2f())
         {
-            object.isMoving = false;
+            object.Animation = ObjectAnimation::Standing;
         }
         else
         {
-            object.isMoving = true;
+            object.Animation = ObjectAnimation::Walking;
             object.Direction = normalize(direction);
         }
     }
@@ -188,7 +202,15 @@ struct Bot final : ObjectBehavior
             }
             if (std::rand() % 2000 < 10)
             {
-                object.isMoving = !object.isMoving;
+                switch (object.Animation)
+                {
+                case ObjectAnimation::Standing:
+                    object.Animation = ObjectAnimation::Walking;
+                    break;
+                case ObjectAnimation::Walking:
+                    object.Animation = ObjectAnimation::Standing;
+                    break;
+                }
                 object.Direction = normalize(
                     sf::Vector2f(static_cast<float>(std::rand() % 10 - 5), static_cast<float>(std::rand() % 10 - 5)));
             }
@@ -202,19 +224,19 @@ struct Bot final : ObjectBehavior
             }
             if (isWithinDistance(object.Position, _target->Position, 600))
             {
-                object.isMoving = true;
+                object.Animation = ObjectAnimation::Walking;
                 object.Direction = normalize(_target->Position - object.Position);
             }
             else
             {
-                object.isMoving = false;
+                object.Animation = ObjectAnimation::Standing;
                 _state = State::MovingAround;
                 _target = nullptr;
             }
             break;
 
         case State::Attacking:
-            object.isMoving = false;
+            object.Animation = ObjectAnimation::Standing;
             if (!isWithinDistance(object.Position, _target->Position, 100))
             {
                 _state = State::Chasing;
@@ -281,17 +303,23 @@ void updateObject(Object &object, Object &player, const sf::Time &deltaTime)
 {
     object.Behavior->update(object, player, deltaTime);
 
-    if (object.isMoving)
+    switch (object.Animation)
     {
+    case ObjectAnimation::Standing:
+        break;
+
+    case ObjectAnimation::Walking: {
         const float velocity = 120;
         const auto change = object.Direction * deltaTime.asSeconds() * velocity;
         object.Position.x += change.x;
         object.Position.y += change.y;
+        break;
+    }
     }
 
     object.AnimationTime += deltaTime.asMilliseconds();
-    object.Sprite.setTextureRect(
-        object.Cutter(object.isMoving, object.AnimationTime, DirectionFromVector(object.Direction), object.SpriteSize));
+    object.Sprite.setTextureRect(object.Cutter(
+        object.Animation, object.AnimationTime, DirectionFromVector(object.Direction), object.SpriteSize));
     // the position of an object is at the bottom center of the sprite (on the ground)
     object.Sprite.setPosition(
         object.Position -
@@ -348,10 +376,19 @@ int main()
         return 1;
     }
 
-    TextureCutter *const wolfCutter = [](const bool isMoving, const sf::Int32 animationTime, const Direction direction,
-                                         const sf::Vector2i &size) {
-        return sf::IntRect(isMoving ? (size.x * ((animationTime / 80) % 9)) : 0,
-                           size.y * (static_cast<int>(direction) + 8), size.x, size.y);
+    TextureCutter *const wolfCutter = [](const ObjectAnimation animation, const sf::Int32 animationTime,
+                                         const Direction direction, const sf::Vector2i &size) {
+        sf::Int32 x = 0;
+        switch (animation)
+        {
+        case ObjectAnimation::Standing:
+            break;
+
+        case ObjectAnimation::Walking:
+            x = (size.x * ((animationTime / 80) % 9));
+            break;
+        }
+        return sf::IntRect(x, size.y * (static_cast<int>(direction) + 8), size.x, size.y);
     };
 
     const auto grassFile = (assets / "LPC Base Assets" / "tiles" / "grass.png");
