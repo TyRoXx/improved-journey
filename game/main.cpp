@@ -54,6 +54,7 @@ struct Object
     Direction Dir = Direction::Down;
     TextureCutter *Cutter = nullptr;
     sf::Vector2i SpriteSize;
+    sf::Int32 VerticalOffset = 0;
 };
 
 int main()
@@ -89,12 +90,12 @@ int main()
     const std::array<const char *, 10> enemyFileNames = {
         "bat", "bee", "big_worm", "eyeball", "ghost", "man_eater_flower", "pumpking", "slime", "small_worm", "snake"};
     const std::array<sf::Vector2i, 10> enemySizes = {
-        sf::Vector2i(32, 32), sf::Vector2i(32, 32), sf::Vector2i(35, 50), sf::Vector2i(32, 38), sf::Vector2i(40, 46),
-        sf::Vector2i(60, 76), sf::Vector2i(46, 46), sf::Vector2i(32, 32), sf::Vector2i(32, 32), sf::Vector2i(32, 32)};
+        sf::Vector2i(64, 64),   sf::Vector2i(32, 32), sf::Vector2i(64, 64), sf::Vector2i(64, 64), sf::Vector2i(64, 64),
+        sf::Vector2i(128, 128), sf::Vector2i(64, 64), sf::Vector2i(64, 64), sf::Vector2i(64, 64), sf::Vector2i(64, 64)};
+    const std::array<int, 10> enemyVerticalOffset = {4, 2, 18, 17, 13, 28, 10, 20, 19, 18};
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
     {
-        const auto enemyFile =
-            (assets / "LPC Base Assets" / "sprites" / "monsters" / (std::string(enemyFileNames[i]) + ".png"));
+        const auto enemyFile = (assets / "lpc-monsters" / (std::string(enemyFileNames[i]) + ".png"));
         if (!enemyTextures[i].loadFromFile(enemyFile.string()))
         {
             return 1;
@@ -118,6 +119,7 @@ int main()
         enemy.Position.x = static_cast<float>(std::rand() % 1200);
         enemy.Position.y = static_cast<float>(std::rand() % 800);
         enemy.Dir = static_cast<Direction>(std::rand() % 4);
+        enemy.VerticalOffset = enemyVerticalOffset[i];
     }
 
     sf::Clock deltaClock;
@@ -219,8 +221,10 @@ int main()
             object.AnimationTime += deltaTime.asMilliseconds();
             object.Sprite.setTextureRect(object.Cutter(isMoving, object.AnimationTime, object.Dir, object.SpriteSize));
             // the position of an object is at the bottom center of the sprite (on the ground)
-            object.Sprite.setPosition(object.Position - sf::Vector2f(static_cast<float>(object.SpriteSize.x / 2),
-                                                                     static_cast<float>(object.SpriteSize.y)));
+            object.Sprite.setPosition(
+                object.Position -
+                sf::Vector2f(static_cast<float>(object.SpriteSize.x / 2), static_cast<float>(object.SpriteSize.y)) +
+                sf::Vector2f(0, static_cast<float>(object.VerticalOffset)));
         };
         updateObject(wolf, isWolfMoving, deltaTime);
         spritesToDrawInZOrder.emplace_back(&wolf.Sprite);
