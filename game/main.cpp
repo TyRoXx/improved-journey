@@ -36,6 +36,26 @@ sf::Vector2f DirectionToVector(Direction direction)
     IJ_UNREACHABLE();
 }
 
+using TextureCutter = sf::IntRect(const bool isMoving, const sf::Int32 animationTime, const Direction direction,
+                                  const sf::Vector2i &size);
+
+sf::IntRect cutEnemyTexture(const bool isMoving, const sf::Int32 animationTime, const Direction direction,
+                            const sf::Vector2i &size)
+{
+    return sf::IntRect((size.x * ((animationTime / (isMoving ? 150 : 300)) % 3)), size.y * static_cast<int>(direction),
+                       size.x, size.y);
+};
+
+struct Object
+{
+    sf::Sprite Sprite;
+    sf::Int32 AnimationTime = 0;
+    sf::Vector2f Position;
+    Direction Dir = Direction::Down;
+    TextureCutter *Cutter = nullptr;
+    sf::Vector2i SpriteSize;
+};
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
@@ -52,6 +72,12 @@ int main()
         return 1;
     }
 
+    TextureCutter *const wolfCutter = [](const bool isMoving, const sf::Int32 animationTime, const Direction direction,
+                                         const sf::Vector2i &size) {
+        return sf::IntRect(isMoving ? (size.x * ((animationTime / 80) % 9)) : 0,
+                           size.y * (static_cast<int>(direction) + 8), size.x, size.y);
+    };
+
     const auto grassFile = (assets / "LPC Base Assets" / "tiles" / "grass.png");
     sf::Texture grassTexture;
     if (!grassTexture.loadFromFile(grassFile.string()))
@@ -59,11 +85,40 @@ int main()
         return 1;
     }
 
-    sf::Sprite wolf(wolfsheet1Texture);
-    sf::Int32 wolfAnimationTime = 0;
-    sf::Vector2f wolfPosition;
+    std::array<sf::Texture, 10> enemyTextures = {};
+    const std::array<const char *, 10> enemyFileNames = {
+        "bat", "bee", "big_worm", "eyeball", "ghost", "man_eater_flower", "pumpking", "slime", "small_worm", "snake"};
+    const std::array<sf::Vector2i, 10> enemySizes = {
+        sf::Vector2i(32, 32), sf::Vector2i(32, 32), sf::Vector2i(35, 50), sf::Vector2i(32, 38), sf::Vector2i(40, 46),
+        sf::Vector2i(60, 76), sf::Vector2i(46, 46), sf::Vector2i(32, 32), sf::Vector2i(32, 32), sf::Vector2i(32, 32)};
+    for (size_t i = 0; i < enemyFileNames.size(); ++i)
+    {
+        const auto enemyFile =
+            (assets / "LPC Base Assets" / "sprites" / "monsters" / (std::string(enemyFileNames[i]) + ".png"));
+        if (!enemyTextures[i].loadFromFile(enemyFile.string()))
+        {
+            return 1;
+        }
+    }
+
+    Object wolf;
+    wolf.Sprite.setTexture(wolfsheet1Texture);
+    wolf.Cutter = wolfCutter;
+    wolf.SpriteSize = sf::Vector2i(64, 64);
     std::array<bool, 4> isDirectionKeyPressed = {};
     Direction lastDirectionPressedDown = Direction::Down;
+
+    std::vector<Object> enemies;
+    for (size_t i = 0; i < enemyFileNames.size(); ++i)
+    {
+        Object &enemy = enemies.emplace_back();
+        enemy.Sprite.setTexture(enemyTextures[i]);
+        enemy.Cutter = cutEnemyTexture;
+        enemy.SpriteSize = enemySizes[i];
+        enemy.Position.x = static_cast<float>(std::rand() % 1200);
+        enemy.Position.y = static_cast<float>(std::rand() % 800);
+        enemy.Dir = static_cast<Direction>(std::rand() % 4);
+    }
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -124,20 +179,6 @@ int main()
         }
 
         const sf::Time deltaTime = deltaClock.restart();
-        const bool isWolfMoving = std::ranges::any_of(isDirectionKeyPressed, std::identity());
-        Direction wolfDirection = lastDirectionPressedDown;
-        if (isWolfMoving)
-        {
-            if (!isDirectionKeyPressed[static_cast<size_t>(wolfDirection)])
-            {
-                wolfDirection = static_cast<Direction>(std::ranges::find(isDirectionKeyPressed, true) -
-                                                       isDirectionKeyPressed.begin());
-            }
-            const float velocity = 120;
-            const auto change = DirectionToVector(wolfDirection) * deltaTime.asSeconds() * velocity;
-            wolfPosition.x += change.x;
-            wolfPosition.y += change.y;
-        }
 
         ImGui::SFML::Update(window, deltaTime);
 
@@ -154,15 +195,37 @@ int main()
             }
         }
 
+        const bool isWolfMoving = std::ranges::any_of(isDirectionKeyPressed, std::identity());
         if (isWolfMoving)
         {
-            wolfAnimationTime += deltaTime.asMilliseconds();
+            if (!isDirectionKeyPressed[static_cast<size_t>(wolf.Dir)])
+            {
+                wolf.Dir = static_cast<Direction>(std::ranges::find(isDirectionKeyPressed, true) -
+                                                  isDirectionKeyPressed.begin());
+            }
         }
 
-        wolf.setTextureRect(sf::IntRect(isWolfMoving ? (64 * ((wolfAnimationTime / 80) % 9)) : 0,
-                                        64 * (static_cast<int>(wolfDirection) + 8), 64, 64));
-        wolf.setPosition(wolfPosition);
-        window.draw(wolf);
+        const auto updateAndDrawObject = [](Object &object, const bool isMoving, const sf::Time &deltaTime,
+                                            sf::RenderWindow &window) {
+            if (isMoving)
+            {
+                const float velocity = 120;
+                const auto change = DirectionToVector(object.Dir) * deltaTime.asSeconds() * velocity;
+                object.Position.x += change.x;
+                object.Position.y += change.y;
+            }
+
+            object.AnimationTime += deltaTime.asMilliseconds();
+            object.Sprite.setTextureRect(object.Cutter(isMoving, object.AnimationTime, object.Dir, object.SpriteSize));
+            object.Sprite.setPosition(object.Position);
+            window.draw(object.Sprite);
+        };
+        updateAndDrawObject(wolf, isWolfMoving, deltaTime, window);
+
+        for (Object &enemy : enemies)
+        {
+            updateAndDrawObject(enemy, false, deltaTime, window);
+        }
 
         ImGui::SFML::Render(window);
         window.display();
