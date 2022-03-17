@@ -65,12 +65,14 @@ Direction DirectionFromVector(const sf::Vector2f &vector)
 enum class ObjectAnimation
 {
     Standing,
-    Walking
+    Walking,
+    Attacking
 };
 
 using TextureCutter = sf::IntRect(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
                                   const sf::Vector2i &size);
 
+template <sf::Int32 WalkFrames, sf::Int32 AttackFrames>
 sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const sf::Int32 animationTime, const Direction direction,
                             const sf::Vector2i &size)
 {
@@ -82,8 +84,12 @@ sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const sf::Int32 ani
         break;
     case ObjectAnimation::Walking:
         break;
+    case ObjectAnimation::Attacking:
+        return sf::IntRect(size.x * (((animationTime / 200) % AttackFrames) + WalkFrames),
+                           size.y * static_cast<int>(direction), size.x, size.y);
     }
-    return sf::IntRect((size.x * ((animationTime / speed) % 3)), size.y * static_cast<int>(direction), size.x, size.y);
+    return sf::IntRect(
+        size.x * ((animationTime / 150) % WalkFrames), size.y * static_cast<int>(direction), size.x, size.y);
 };
 
 sf::Vector2f normalize(const sf::Vector2f &source)
@@ -208,6 +214,7 @@ struct Bot final : ObjectBehavior
                     object.Animation = ObjectAnimation::Walking;
                     break;
                 case ObjectAnimation::Walking:
+                case ObjectAnimation::Attacking:
                     object.Animation = ObjectAnimation::Standing;
                     break;
                 }
@@ -220,6 +227,7 @@ struct Bot final : ObjectBehavior
             if (isWithinDistance(object.Position, _target->Position, 80))
             {
                 _state = State::Attacking;
+                object.Animation = ObjectAnimation::Standing;
                 break;
             }
             if (isWithinDistance(object.Position, _target->Position, 600))
@@ -236,22 +244,24 @@ struct Bot final : ObjectBehavior
             break;
 
         case State::Attacking:
-            object.Animation = ObjectAnimation::Standing;
             if (!isWithinDistance(object.Position, _target->Position, 100))
             {
                 _state = State::Chasing;
+                object.Animation = ObjectAnimation::Standing;
                 break;
             }
             _sinceLastAttack += deltaTime.asMilliseconds();
-            constexpr sf::Int32 attackDelay = 4000;
+            constexpr sf::Int32 attackDelay = 1000;
             while (_sinceLastAttack >= attackDelay)
             {
-                inflictDamage(player, 5);
+                object.Animation = ObjectAnimation::Attacking;
+                inflictDamage(player, 1);
                 _sinceLastAttack -= attackDelay;
             }
             if (isDead(player))
             {
                 _state = State::MovingAround;
+                object.Animation = ObjectAnimation::Standing;
             }
             break;
         }
@@ -306,6 +316,7 @@ void updateObject(Object &object, Object &player, const sf::Time &deltaTime)
     switch (object.Animation)
     {
     case ObjectAnimation::Standing:
+    case ObjectAnimation::Attacking:
         break;
 
     case ObjectAnimation::Walking: {
@@ -379,6 +390,7 @@ int main()
     TextureCutter *const wolfCutter = [](const ObjectAnimation animation, const sf::Int32 animationTime,
                                          const Direction direction, const sf::Vector2i &size) {
         sf::Int32 x = 0;
+        sf::Int32 yOffset = 8;
         switch (animation)
         {
         case ObjectAnimation::Standing:
@@ -387,8 +399,13 @@ int main()
         case ObjectAnimation::Walking:
             x = (size.x * ((animationTime / 80) % 9));
             break;
+
+        case ObjectAnimation::Attacking:
+            yOffset = 0;
+            x = (size.x * ((animationTime / 80) % 7));
+            break;
         }
-        return sf::IntRect(x, size.y * (static_cast<int>(direction) + 8), size.x, size.y);
+        return sf::IntRect(x, size.y * (static_cast<int>(direction) + yOffset), size.x, size.y);
     };
 
     const auto grassFile = (assets / "LPC Base Assets" / "tiles" / "grass.png");
@@ -405,6 +422,10 @@ int main()
         sf::Vector2i(64, 64),   sf::Vector2i(32, 32), sf::Vector2i(64, 64), sf::Vector2i(64, 64), sf::Vector2i(64, 64),
         sf::Vector2i(128, 128), sf::Vector2i(64, 64), sf::Vector2i(64, 64), sf::Vector2i(64, 64), sf::Vector2i(64, 64)};
     const std::array<int, 10> enemyVerticalOffset = {4, 2, 18, 17, 13, 28, 10, 20, 19, 18};
+    const std::array<TextureCutter *, 10> enemyTextureCutters = {
+        &cutEnemyTexture<4, 3>, &cutEnemyTexture<3, 3>, &cutEnemyTexture<3, 3>, &cutEnemyTexture<3, 3>,
+        &cutEnemyTexture<3, 3>, &cutEnemyTexture<3, 3>, &cutEnemyTexture<3, 3>, &cutEnemyTexture<3, 3>,
+        &cutEnemyTexture<3, 7>, &cutEnemyTexture<4, 3>};
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
     {
         const auto enemyFile = (assets / "lpc-monsters" / (std::string(enemyFileNames[i]) + ".png"));
@@ -429,7 +450,7 @@ int main()
     {
         Object &enemy = enemies.emplace_back();
         enemy.Sprite.setTexture(enemyTextures[i]);
-        enemy.Cutter = cutEnemyTexture;
+        enemy.Cutter = enemyTextureCutters[i];
         enemy.SpriteSize = enemySizes[i];
         enemy.Position.x = static_cast<float>(std::rand() % 1200);
         enemy.Position.y = static_cast<float>(std::rand() % 800);
