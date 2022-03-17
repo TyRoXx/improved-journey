@@ -57,6 +57,27 @@ struct Object
     sf::Int32 VerticalOffset = 0;
 };
 
+struct Camera
+{
+    sf::Vector2f Center;
+
+    void draw(sf::RenderWindow &window, const sf::Sprite &sprite)
+    {
+        sf::Sprite moved(sprite);
+        moved.move(-Center);
+        moved.move(sf::Vector2f(window.getSize()) * 0.5f);
+        window.draw(moved);
+    }
+
+    void draw(sf::RenderWindow &window, const sf::CircleShape &shape)
+    {
+        sf::CircleShape moved(shape);
+        moved.move(-Center);
+        moved.move(sf::Vector2f(window.getSize()) * 0.5f);
+        window.draw(moved);
+    }
+};
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
@@ -106,6 +127,7 @@ int main()
     wolf.Sprite.setTexture(wolfsheet1Texture);
     wolf.Cutter = wolfCutter;
     wolf.SpriteSize = sf::Vector2i(64, 64);
+    wolf.Position = sf::Vector2f(400, 400);
     std::array<bool, 4> isDirectionKeyPressed = {};
     Direction lastDirectionPressedDown = Direction::Down;
 
@@ -121,6 +143,8 @@ int main()
         enemy.Dir = static_cast<Direction>(std::rand() % 4);
         enemy.VerticalOffset = enemyVerticalOffset[i];
     }
+
+    Camera camera{wolf.Position};
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -193,7 +217,7 @@ int main()
                 sf::Sprite grass(grassTexture);
                 grass.setTextureRect(sf::IntRect(((x + y) % 3) * 32, 160, 32, 32));
                 grass.setPosition(sf::Vector2f(static_cast<float>(x) * 32.0f, static_cast<float>(y) * 32.0f));
-                window.draw(grass);
+                camera.draw(window, grass);
             }
         }
 
@@ -227,6 +251,7 @@ int main()
                 sf::Vector2f(0, static_cast<float>(object.VerticalOffset)));
         };
         updateObject(wolf, isWolfMoving, deltaTime);
+        camera.Center = wolf.Position;
         spritesToDrawInZOrder.emplace_back(&wolf.Sprite);
 
         for (Object &enemy : enemies)
@@ -244,7 +269,7 @@ int main()
             });
         for (const sf::Sprite *const sprite : spritesToDrawInZOrder)
         {
-            window.draw(*sprite);
+            camera.draw(window, *sprite);
         }
 
         {
@@ -252,7 +277,7 @@ int main()
             circle.setOutlineColor(sf::Color(0, 255, 0));
             circle.setFillColor(sf::Color(0, 255, 0));
             circle.setPosition(wolf.Position);
-            window.draw(circle);
+            camera.draw(window, circle);
         }
         for (const Object &enemy : enemies)
         {
@@ -260,7 +285,7 @@ int main()
             circle.setOutlineColor(sf::Color(255, 0, 0));
             circle.setFillColor(sf::Color(255, 0, 0));
             circle.setPosition(enemy.Position);
-            window.draw(circle);
+            camera.draw(window, circle);
         }
 
         ImGui::SFML::Render(window);
