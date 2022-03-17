@@ -102,7 +102,7 @@ struct ObjectBehavior
     {
     }
 
-    virtual void update(Object &object) = 0;
+    virtual void update(Object &object, Object &player) = 0;
 };
 
 struct PlayerCharacter final : ObjectBehavior
@@ -114,8 +114,10 @@ struct PlayerCharacter final : ObjectBehavior
     {
     }
 
-    virtual void update(Object &object) final
+    virtual void update(Object &object, Object &player) final
     {
+        assert(&object == &player);
+        (void)player;
         sf::Vector2f direction;
         for (sf::Int32 i = 0; i < 4; ++i)
         {
@@ -137,17 +139,64 @@ struct PlayerCharacter final : ObjectBehavior
     }
 };
 
+bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, const float distance)
+{
+    const float xDiff = (first.x - second.x);
+    const float yDiff = (first.y - second.y);
+    return (distance * distance) >= ((xDiff * xDiff) + (yDiff * yDiff));
+}
+
 struct Bot final : ObjectBehavior
 {
-    virtual void update(Object &object) final
+    virtual void update(Object &object, Object &player) final
     {
-        if (std::rand() % 2000 < 10)
+        switch (_state)
         {
-            object.isMoving = !object.isMoving;
-            object.Direction = normalize(
-                sf::Vector2f(static_cast<float>(std::rand() % 10 - 5), static_cast<float>(std::rand() % 10 - 5)));
+        case State::MovingAround:
+            if (isWithinDistance(object.Position, player.Position, 400))
+            {
+                _state = State::Chasing;
+                _target = &player;
+                break;
+            }
+            if (std::rand() % 2000 < 10)
+            {
+                object.isMoving = !object.isMoving;
+                object.Direction = normalize(
+                    sf::Vector2f(static_cast<float>(std::rand() % 10 - 5), static_cast<float>(std::rand() % 10 - 5)));
+            }
+            break;
+
+        case State::Chasing:
+            if (isWithinDistance(object.Position, _target->Position, 80))
+            {
+                object.isMoving = false;
+                break;
+            }
+            if (isWithinDistance(object.Position, _target->Position, 600))
+            {
+                object.isMoving = true;
+                object.Direction = normalize(_target->Position - object.Position);
+            }
+            else
+            {
+                object.isMoving = false;
+                _state = State::MovingAround;
+                _target = nullptr;
+            }
+            break;
         }
     }
+
+private:
+    enum class State
+    {
+        MovingAround,
+        Chasing
+    };
+
+    State _state = State::MovingAround;
+    Object *_target = nullptr;
 };
 
 struct Camera
@@ -171,9 +220,9 @@ struct Camera
     }
 };
 
-void updateObject(Object &object, const sf::Time &deltaTime)
+void updateObject(Object &object, Object &player, const sf::Time &deltaTime)
 {
-    object.Behavior->update(object);
+    object.Behavior->update(object, player);
 
     if (object.isMoving)
     {
@@ -339,13 +388,13 @@ int main()
 
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
-        updateObject(player, deltaTime);
+        updateObject(player, player, deltaTime);
         camera.Center = player.Position;
         spritesToDrawInZOrder.emplace_back(&player.Sprite);
 
         for (Object &enemy : enemies)
         {
-            updateObject(enemy, deltaTime);
+            updateObject(enemy, player, deltaTime);
             spritesToDrawInZOrder.emplace_back(&enemy.Sprite);
         }
 
