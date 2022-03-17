@@ -46,6 +46,8 @@ sf::IntRect cutEnemyTexture(const bool isMoving, const sf::Int32 animationTime, 
                        size.x, size.y);
 };
 
+struct ObjectBehavior;
+
 struct Object
 {
     sf::Sprite Sprite;
@@ -55,6 +57,49 @@ struct Object
     TextureCutter *Cutter = nullptr;
     sf::Vector2i SpriteSize;
     sf::Int32 VerticalOffset = 0;
+    std::unique_ptr<ObjectBehavior> Behavior;
+    bool isMoving = false;
+};
+
+struct ObjectBehavior
+{
+    virtual ~ObjectBehavior()
+    {
+    }
+
+    virtual void update(Object &object) = 0;
+};
+
+struct PlayerCharacter final : ObjectBehavior
+{
+    const std::array<bool, 4> &isDirectionKeyPressed;
+
+    explicit PlayerCharacter(const std::array<bool, 4> &isDirectionKeyPressed)
+        : isDirectionKeyPressed(isDirectionKeyPressed)
+    {
+    }
+
+    virtual void update(Object &object) final
+    {
+        object.isMoving = std::ranges::any_of(isDirectionKeyPressed, std::identity());
+        if (object.isMoving && !isDirectionKeyPressed[static_cast<size_t>(object.Dir)])
+        {
+            object.Dir =
+                static_cast<Direction>(std::ranges::find(isDirectionKeyPressed, true) - isDirectionKeyPressed.begin());
+        }
+    }
+};
+
+struct Enemy final : ObjectBehavior
+{
+    virtual void update(Object &object) final
+    {
+        if (std::rand() % 2000 < 10)
+        {
+            object.isMoving = !object.isMoving;
+            object.Dir = static_cast<Direction>(std::rand() % 4);
+        }
+    }
 };
 
 struct Camera
@@ -78,9 +123,11 @@ struct Camera
     }
 };
 
-void updateObject(Object &object, const bool isMoving, const sf::Time &deltaTime)
+void updateObject(Object &object, const sf::Time &deltaTime)
 {
-    if (isMoving)
+    object.Behavior->update(object);
+
+    if (object.isMoving)
     {
         const float velocity = 120;
         const auto change = DirectionToVector(object.Dir) * deltaTime.asSeconds() * velocity;
@@ -89,7 +136,7 @@ void updateObject(Object &object, const bool isMoving, const sf::Time &deltaTime
     }
 
     object.AnimationTime += deltaTime.asMilliseconds();
-    object.Sprite.setTextureRect(object.Cutter(isMoving, object.AnimationTime, object.Dir, object.SpriteSize));
+    object.Sprite.setTextureRect(object.Cutter(object.isMoving, object.AnimationTime, object.Dir, object.SpriteSize));
     // the position of an object is at the bottom center of the sprite (on the ground)
     object.Sprite.setPosition(
         object.Position -
@@ -147,13 +194,15 @@ int main()
         }
     }
 
+    Direction lastDirectionPressedDown = Direction::Down;
+    std::array<bool, 4> isDirectionKeyPressed = {};
+
     Object wolf;
     wolf.Sprite.setTexture(wolfsheet1Texture);
     wolf.Cutter = wolfCutter;
     wolf.SpriteSize = sf::Vector2i(64, 64);
     wolf.Position = sf::Vector2f(400, 400);
-    std::array<bool, 4> isDirectionKeyPressed = {};
-    Direction lastDirectionPressedDown = Direction::Down;
+    wolf.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed);
 
     std::vector<Object> enemies;
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
@@ -166,6 +215,7 @@ int main()
         enemy.Position.y = static_cast<float>(std::rand() % 800);
         enemy.Dir = static_cast<Direction>(std::rand() % 4);
         enemy.VerticalOffset = enemyVerticalOffset[i];
+        enemy.Behavior = std::make_unique<Enemy>();
     }
 
     Camera camera{wolf.Position};
@@ -245,20 +295,13 @@ int main()
 
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
-        const bool isWolfMoving = std::ranges::any_of(isDirectionKeyPressed, std::identity());
-        if (isWolfMoving && !isDirectionKeyPressed[static_cast<size_t>(wolf.Dir)])
-        {
-            wolf.Dir =
-                static_cast<Direction>(std::ranges::find(isDirectionKeyPressed, true) - isDirectionKeyPressed.begin());
-        }
-
-        updateObject(wolf, isWolfMoving, deltaTime);
+        updateObject(wolf, deltaTime);
         camera.Center = wolf.Position;
         spritesToDrawInZOrder.emplace_back(&wolf.Sprite);
 
         for (Object &enemy : enemies)
         {
-            updateObject(enemy, false, deltaTime);
+            updateObject(enemy, deltaTime);
             spritesToDrawInZOrder.emplace_back(&enemy.Sprite);
         }
 
