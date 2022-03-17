@@ -36,6 +36,31 @@ sf::Vector2f DirectionToVector(Direction direction)
     IJ_UNREACHABLE();
 }
 
+Direction DirectionFromVector(const sf::Vector2f &vector)
+{
+    if (vector.x >= 0)
+    {
+        if (vector.y >= vector.x)
+        {
+            return Direction::Down;
+        }
+        if (vector.y <= -vector.x)
+        {
+            return Direction::Up;
+        }
+        return Direction::Right;
+    }
+    if (vector.y >= -vector.x)
+    {
+        return Direction::Down;
+    }
+    if (vector.y <= vector.x)
+    {
+        return Direction::Up;
+    }
+    return Direction::Left;
+}
+
 using TextureCutter = sf::IntRect(const bool isMoving, const sf::Int32 animationTime, const Direction direction,
                                   const sf::Vector2i &size);
 
@@ -46,6 +71,16 @@ sf::IntRect cutEnemyTexture(const bool isMoving, const sf::Int32 animationTime, 
                        size.x, size.y);
 };
 
+sf::Vector2f normalize(const sf::Vector2f &source)
+{
+    float length = sqrt((source.x * source.x) + (source.y * source.y));
+    if (length == 0)
+    {
+        return source;
+    }
+    return sf::Vector2f(source.x / length, source.y / length);
+}
+
 struct ObjectBehavior;
 
 struct Object
@@ -53,7 +88,7 @@ struct Object
     sf::Sprite Sprite;
     sf::Int32 AnimationTime = 0;
     sf::Vector2f Position;
-    Direction Dir = Direction::Down;
+    sf::Vector2f Direction;
     TextureCutter *Cutter = nullptr;
     sf::Vector2i SpriteSize;
     sf::Int32 VerticalOffset = 0;
@@ -81,11 +116,23 @@ struct PlayerCharacter final : ObjectBehavior
 
     virtual void update(Object &object) final
     {
-        object.isMoving = std::ranges::any_of(isDirectionKeyPressed, std::identity());
-        if (object.isMoving && !isDirectionKeyPressed[static_cast<size_t>(object.Dir)])
+        sf::Vector2f direction;
+        for (sf::Int32 i = 0; i < 4; ++i)
         {
-            object.Dir =
-                static_cast<Direction>(std::ranges::find(isDirectionKeyPressed, true) - isDirectionKeyPressed.begin());
+            if (!isDirectionKeyPressed[i])
+            {
+                continue;
+            }
+            direction += DirectionToVector(static_cast<Direction>(i));
+        }
+        if (direction == sf::Vector2f())
+        {
+            object.isMoving = false;
+        }
+        else
+        {
+            object.isMoving = true;
+            object.Direction = normalize(direction);
         }
     }
 };
@@ -97,7 +144,8 @@ struct Bot final : ObjectBehavior
         if (std::rand() % 2000 < 10)
         {
             object.isMoving = !object.isMoving;
-            object.Dir = static_cast<Direction>(std::rand() % 4);
+            object.Direction = normalize(
+                sf::Vector2f(static_cast<float>(std::rand() % 10 - 5), static_cast<float>(std::rand() % 10 - 5)));
         }
     }
 };
@@ -130,13 +178,14 @@ void updateObject(Object &object, const sf::Time &deltaTime)
     if (object.isMoving)
     {
         const float velocity = 120;
-        const auto change = DirectionToVector(object.Dir) * deltaTime.asSeconds() * velocity;
+        const auto change = object.Direction * deltaTime.asSeconds() * velocity;
         object.Position.x += change.x;
         object.Position.y += change.y;
     }
 
     object.AnimationTime += deltaTime.asMilliseconds();
-    object.Sprite.setTextureRect(object.Cutter(object.isMoving, object.AnimationTime, object.Dir, object.SpriteSize));
+    object.Sprite.setTextureRect(
+        object.Cutter(object.isMoving, object.AnimationTime, DirectionFromVector(object.Direction), object.SpriteSize));
     // the position of an object is at the bottom center of the sprite (on the ground)
     object.Sprite.setPosition(
         object.Position -
@@ -194,7 +243,6 @@ int main()
         }
     }
 
-    Direction lastDirectionPressedDown = Direction::Down;
     std::array<bool, 4> isDirectionKeyPressed = {};
 
     Object player;
@@ -213,7 +261,7 @@ int main()
         enemy.SpriteSize = enemySizes[i];
         enemy.Position.x = static_cast<float>(std::rand() % 1200);
         enemy.Position.y = static_cast<float>(std::rand() % 800);
-        enemy.Dir = static_cast<Direction>(std::rand() % 4);
+        enemy.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
         enemy.VerticalOffset = enemyVerticalOffset[i];
         enemy.Behavior = std::make_unique<Bot>();
     }
@@ -237,20 +285,16 @@ int main()
                 switch (event.key.code)
                 {
                 case sf::Keyboard::W:
-                    lastDirectionPressedDown = Direction::Up;
-                    isDirectionKeyPressed[static_cast<size_t>(lastDirectionPressedDown)] = true;
+                    isDirectionKeyPressed[static_cast<size_t>(Direction::Up)] = true;
                     break;
                 case sf::Keyboard::A:
-                    lastDirectionPressedDown = Direction::Left;
-                    isDirectionKeyPressed[static_cast<size_t>(lastDirectionPressedDown)] = true;
+                    isDirectionKeyPressed[static_cast<size_t>(Direction::Left)] = true;
                     break;
                 case sf::Keyboard::S:
-                    lastDirectionPressedDown = Direction::Down;
-                    isDirectionKeyPressed[static_cast<size_t>(lastDirectionPressedDown)] = true;
+                    isDirectionKeyPressed[static_cast<size_t>(Direction::Down)] = true;
                     break;
                 case sf::Keyboard::D:
-                    lastDirectionPressedDown = Direction::Right;
-                    isDirectionKeyPressed[static_cast<size_t>(lastDirectionPressedDown)] = true;
+                    isDirectionKeyPressed[static_cast<size_t>(Direction::Right)] = true;
                     break;
                 default:
                     break;
