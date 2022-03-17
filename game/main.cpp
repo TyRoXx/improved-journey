@@ -78,6 +78,30 @@ struct Camera
     }
 };
 
+void updateObject(Object &object, const bool isMoving, const sf::Time &deltaTime)
+{
+    if (isMoving)
+    {
+        const float velocity = 120;
+        const auto change = DirectionToVector(object.Dir) * deltaTime.asSeconds() * velocity;
+        object.Position.x += change.x;
+        object.Position.y += change.y;
+    }
+
+    object.AnimationTime += deltaTime.asMilliseconds();
+    object.Sprite.setTextureRect(object.Cutter(isMoving, object.AnimationTime, object.Dir, object.SpriteSize));
+    // the position of an object is at the bottom center of the sprite (on the ground)
+    object.Sprite.setPosition(
+        object.Position -
+        sf::Vector2f(static_cast<float>(object.SpriteSize.x / 2), static_cast<float>(object.SpriteSize.y)) +
+        sf::Vector2f(0, static_cast<float>(object.VerticalOffset)));
+}
+
+float bottomOfSprite(const sf::Sprite &sprite)
+{
+    return (sprite.getPosition().y + static_cast<float>(sprite.getTextureRect().height));
+}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
@@ -205,9 +229,7 @@ int main()
         }
 
         const sf::Time deltaTime = deltaClock.restart();
-
         ImGui::SFML::Update(window, deltaTime);
-
         window.clear();
 
         for (sf::Int32 y = 0; y < 30; ++y)
@@ -224,32 +246,12 @@ int main()
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
         const bool isWolfMoving = std::ranges::any_of(isDirectionKeyPressed, std::identity());
-        if (isWolfMoving)
+        if (isWolfMoving && !isDirectionKeyPressed[static_cast<size_t>(wolf.Dir)])
         {
-            if (!isDirectionKeyPressed[static_cast<size_t>(wolf.Dir)])
-            {
-                wolf.Dir = static_cast<Direction>(std::ranges::find(isDirectionKeyPressed, true) -
-                                                  isDirectionKeyPressed.begin());
-            }
+            wolf.Dir =
+                static_cast<Direction>(std::ranges::find(isDirectionKeyPressed, true) - isDirectionKeyPressed.begin());
         }
 
-        static constexpr auto updateObject = [](Object &object, const bool isMoving, const sf::Time &deltaTime) {
-            if (isMoving)
-            {
-                const float velocity = 120;
-                const auto change = DirectionToVector(object.Dir) * deltaTime.asSeconds() * velocity;
-                object.Position.x += change.x;
-                object.Position.y += change.y;
-            }
-
-            object.AnimationTime += deltaTime.asMilliseconds();
-            object.Sprite.setTextureRect(object.Cutter(isMoving, object.AnimationTime, object.Dir, object.SpriteSize));
-            // the position of an object is at the bottom center of the sprite (on the ground)
-            object.Sprite.setPosition(
-                object.Position -
-                sf::Vector2f(static_cast<float>(object.SpriteSize.x / 2), static_cast<float>(object.SpriteSize.y)) +
-                sf::Vector2f(0, static_cast<float>(object.VerticalOffset)));
-        };
         updateObject(wolf, isWolfMoving, deltaTime);
         camera.Center = wolf.Position;
         spritesToDrawInZOrder.emplace_back(&wolf.Sprite);
@@ -260,9 +262,6 @@ int main()
             spritesToDrawInZOrder.emplace_back(&enemy.Sprite);
         }
 
-        static constexpr auto bottomOfSprite = [](const sf::Sprite &sprite) -> float {
-            return (sprite.getPosition().y + static_cast<float>(sprite.getTextureRect().height));
-        };
         std::ranges::sort(
             spritesToDrawInZOrder, [](const sf::Sprite *const left, const sf::Sprite *const right) -> bool {
                 return (bottomOfSprite(*left) < bottomOfSprite(*right));
