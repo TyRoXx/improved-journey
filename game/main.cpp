@@ -195,6 +195,8 @@ int main()
             }
         }
 
+        std::vector<const sf::Sprite *> spritesToDrawInZOrder;
+
         const bool isWolfMoving = std::ranges::any_of(isDirectionKeyPressed, std::identity());
         if (isWolfMoving)
         {
@@ -205,8 +207,7 @@ int main()
             }
         }
 
-        const auto updateAndDrawObject = [](Object &object, const bool isMoving, const sf::Time &deltaTime,
-                                            sf::RenderWindow &window) {
+        static constexpr auto updateObject = [](Object &object, const bool isMoving, const sf::Time &deltaTime) {
             if (isMoving)
             {
                 const float velocity = 120;
@@ -218,13 +219,26 @@ int main()
             object.AnimationTime += deltaTime.asMilliseconds();
             object.Sprite.setTextureRect(object.Cutter(isMoving, object.AnimationTime, object.Dir, object.SpriteSize));
             object.Sprite.setPosition(object.Position);
-            window.draw(object.Sprite);
         };
-        updateAndDrawObject(wolf, isWolfMoving, deltaTime, window);
+        updateObject(wolf, isWolfMoving, deltaTime);
+        spritesToDrawInZOrder.emplace_back(&wolf.Sprite);
 
         for (Object &enemy : enemies)
         {
-            updateAndDrawObject(enemy, false, deltaTime, window);
+            updateObject(enemy, false, deltaTime);
+            spritesToDrawInZOrder.emplace_back(&enemy.Sprite);
+        }
+
+        static constexpr auto bottomOfSprite = [](const sf::Sprite &sprite) -> float {
+            return (sprite.getPosition().y + static_cast<float>(sprite.getTextureRect().height));
+        };
+        std::ranges::sort(
+            spritesToDrawInZOrder, [](const sf::Sprite *const left, const sf::Sprite *const right) -> bool {
+                return (bottomOfSprite(*left) < bottomOfSprite(*right));
+            });
+        for (const sf::Sprite *const sprite : spritesToDrawInZOrder)
+        {
+            window.draw(*sprite);
         }
 
         ImGui::SFML::Render(window);
