@@ -109,19 +109,35 @@ struct ObjectBehavior;
 
 using Health = sf::Int32;
 
-struct Object
+struct VisualEntity
 {
     sf::Sprite Sprite;
-    sf::Int32 AnimationTime = 0;
-    sf::Vector2f Position;
-    sf::Vector2f Direction;
-    TextureCutter *Cutter = nullptr;
     sf::Vector2i SpriteSize;
     sf::Int32 VerticalOffset = 0;
-    std::unique_ptr<ObjectBehavior> Behavior;
+    sf::Int32 AnimationTime = 0;
+    TextureCutter *Cutter = nullptr;
     ObjectAnimation Animation = ObjectAnimation::Standing;
+};
+
+enum class ObjectActivity
+{
+    Standing,
+    Walking,
+    Attacking,
+    Dead
+};
+
+struct Object
+{
+    VisualEntity Visuals;
+
+    ObjectActivity Activity = ObjectActivity::Standing;
+
+    std::unique_ptr<ObjectBehavior> Behavior;
+    sf::Vector2f Direction;
     Health currentHealth = 1;
     Health maximumHealth = 1;
+    sf::Vector2f Position;
 };
 
 void inflictDamage(Object &defender, const Health damage)
@@ -171,7 +187,7 @@ struct PlayerCharacter final : ObjectBehavior
 
         if (isDead(object))
         {
-            object.Animation = ObjectAnimation::Dead;
+            object.Activity = ObjectActivity::Dead;
             return;
         }
 
@@ -188,7 +204,7 @@ struct PlayerCharacter final : ObjectBehavior
         {
             if (isAttackPressed)
             {
-                object.Animation = ObjectAnimation::Attacking;
+                object.Activity = ObjectActivity::Attacking;
                 for (Object &enemy : world.enemies)
                 {
                     inflictDamage(enemy, 1);
@@ -196,12 +212,12 @@ struct PlayerCharacter final : ObjectBehavior
             }
             else
             {
-                object.Animation = ObjectAnimation::Standing;
+                object.Activity = ObjectActivity::Standing;
             }
         }
         else
         {
-            object.Animation = ObjectAnimation::Walking;
+            object.Activity = ObjectActivity::Walking;
             object.Direction = normalize(direction);
         }
     }
@@ -221,7 +237,7 @@ struct Bot final : ObjectBehavior
         (void)world;
         if (isDead(object))
         {
-            object.Animation = ObjectAnimation::Dead;
+            object.Activity = ObjectActivity::Dead;
             return;
         }
         switch (_state)
@@ -235,15 +251,15 @@ struct Bot final : ObjectBehavior
             }
             if (std::rand() % 2000 < 10)
             {
-                switch (object.Animation)
+                switch (object.Activity)
                 {
-                case ObjectAnimation::Standing:
-                    object.Animation = ObjectAnimation::Walking;
+                case ObjectActivity::Standing:
+                    object.Activity = ObjectActivity::Walking;
                     break;
-                case ObjectAnimation::Walking:
-                case ObjectAnimation::Attacking:
-                case ObjectAnimation::Dead:
-                    object.Animation = ObjectAnimation::Standing;
+                case ObjectActivity::Walking:
+                case ObjectActivity::Attacking:
+                case ObjectActivity::Dead:
+                    object.Activity = ObjectActivity::Standing;
                     break;
                 }
                 object.Direction = normalize(
@@ -255,17 +271,17 @@ struct Bot final : ObjectBehavior
             if (isWithinDistance(object.Position, _target->Position, 80))
             {
                 _state = State::Attacking;
-                object.Animation = ObjectAnimation::Standing;
+                object.Activity = ObjectActivity::Standing;
                 break;
             }
             if (isWithinDistance(object.Position, _target->Position, 600))
             {
-                object.Animation = ObjectAnimation::Walking;
+                object.Activity = ObjectActivity::Walking;
                 object.Direction = normalize(_target->Position - object.Position);
             }
             else
             {
-                object.Animation = ObjectAnimation::Standing;
+                object.Activity = ObjectActivity::Standing;
                 _state = State::MovingAround;
                 _target = nullptr;
             }
@@ -275,21 +291,21 @@ struct Bot final : ObjectBehavior
             if (!isWithinDistance(object.Position, _target->Position, 100))
             {
                 _state = State::Chasing;
-                object.Animation = ObjectAnimation::Standing;
+                object.Activity = ObjectActivity::Standing;
                 break;
             }
             _sinceLastAttack += deltaTime.asMilliseconds();
             constexpr sf::Int32 attackDelay = 1000;
             while (_sinceLastAttack >= attackDelay)
             {
-                object.Animation = ObjectAnimation::Attacking;
+                object.Activity = ObjectActivity::Attacking;
                 inflictDamage(player, 1);
                 _sinceLastAttack -= attackDelay;
             }
             if (isDead(player))
             {
                 _state = State::MovingAround;
-                object.Animation = ObjectAnimation::Standing;
+                object.Activity = ObjectActivity::Standing;
             }
             break;
         }
@@ -341,14 +357,22 @@ void updateObject(Object &object, Object &player, World &world, const sf::Time &
 {
     object.Behavior->update(object, player, world, deltaTime);
 
-    switch (object.Animation)
+    switch (object.Activity)
     {
-    case ObjectAnimation::Standing:
-    case ObjectAnimation::Attacking:
-    case ObjectAnimation::Dead:
+    case ObjectActivity::Standing:
+        object.Visuals.Animation = ObjectAnimation::Standing;
         break;
 
-    case ObjectAnimation::Walking: {
+    case ObjectActivity::Attacking:
+        object.Visuals.Animation = ObjectAnimation::Attacking;
+        break;
+
+    case ObjectActivity::Dead:
+        object.Visuals.Animation = ObjectAnimation::Dead;
+        break;
+
+    case ObjectActivity::Walking: {
+        object.Visuals.Animation = ObjectAnimation::Walking;
         const float velocity = 120;
         const auto change = object.Direction * deltaTime.asSeconds() * velocity;
         object.Position.x += change.x;
@@ -357,14 +381,15 @@ void updateObject(Object &object, Object &player, World &world, const sf::Time &
     }
     }
 
-    object.AnimationTime += deltaTime.asMilliseconds();
-    object.Sprite.setTextureRect(object.Cutter(
-        object.Animation, object.AnimationTime, DirectionFromVector(object.Direction), object.SpriteSize));
+    object.Visuals.AnimationTime += deltaTime.asMilliseconds();
+    object.Visuals.Sprite.setTextureRect(object.Visuals.Cutter(object.Visuals.Animation, object.Visuals.AnimationTime,
+                                                               DirectionFromVector(object.Direction),
+                                                               object.Visuals.SpriteSize));
     // the position of an object is at the bottom center of the sprite (on the ground)
-    object.Sprite.setPosition(
-        object.Position -
-        sf::Vector2f(static_cast<float>(object.SpriteSize.x / 2), static_cast<float>(object.SpriteSize.y)) +
-        sf::Vector2f(0, static_cast<float>(object.VerticalOffset)));
+    object.Visuals.Sprite.setPosition(object.Position -
+                                      sf::Vector2f(static_cast<float>(object.Visuals.SpriteSize.x / 2),
+                                                   static_cast<float>(object.Visuals.SpriteSize.y)) +
+                                      sf::Vector2f(0, static_cast<float>(object.Visuals.VerticalOffset)));
 }
 
 float bottomOfSprite(const sf::Sprite &sprite)
@@ -381,7 +406,7 @@ void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &objec
     constexpr sf::Int32 width = 24;
     constexpr sf::Int32 height = 4;
     const float x = object.Position.x - width / 2;
-    const float y = object.Position.y - static_cast<float>(object.Sprite.getTextureRect().height);
+    const float y = object.Position.y - static_cast<float>(object.Visuals.Sprite.getTextureRect().height);
     const float greenPortion =
         static_cast<float>(object.currentHealth) / static_cast<float>(object.maximumHealth) * static_cast<float>(width);
     {
@@ -471,9 +496,9 @@ int main()
     bool isAttackPressed = false;
 
     Object player;
-    player.Sprite.setTexture(wolfsheet1Texture);
-    player.Cutter = wolfCutter;
-    player.SpriteSize = sf::Vector2i(64, 64);
+    player.Visuals.Sprite.setTexture(wolfsheet1Texture);
+    player.Visuals.Cutter = wolfCutter;
+    player.Visuals.SpriteSize = sf::Vector2i(64, 64);
     player.Position = sf::Vector2f(400, 400);
     player.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed, isAttackPressed);
     player.currentHealth = player.maximumHealth = 100;
@@ -482,13 +507,13 @@ int main()
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
     {
         Object &enemy = world.enemies.emplace_back();
-        enemy.Sprite.setTexture(enemyTextures[i]);
-        enemy.Cutter = enemyTextureCutters[i];
-        enemy.SpriteSize = enemySizes[i];
+        enemy.Visuals.Sprite.setTexture(enemyTextures[i]);
+        enemy.Visuals.Cutter = enemyTextureCutters[i];
+        enemy.Visuals.SpriteSize = enemySizes[i];
+        enemy.Visuals.VerticalOffset = enemyVerticalOffset[i];
         enemy.Position.x = static_cast<float>(std::rand() % 1200);
         enemy.Position.y = static_cast<float>(std::rand() % 800);
         enemy.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
-        enemy.VerticalOffset = enemyVerticalOffset[i];
         enemy.Behavior = std::make_unique<Bot>();
         enemy.currentHealth = enemy.maximumHealth = 300;
     }
@@ -574,12 +599,12 @@ int main()
 
         updateObject(player, player, world, deltaTime);
         camera.Center = player.Position;
-        spritesToDrawInZOrder.emplace_back(&player.Sprite);
+        spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
 
         for (Object &enemy : world.enemies)
         {
             updateObject(enemy, player, world, deltaTime);
-            spritesToDrawInZOrder.emplace_back(&enemy.Sprite);
+            spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
         }
 
         std::ranges::sort(
