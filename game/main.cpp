@@ -384,26 +384,22 @@ struct Camera
     }
 };
 
-void updateObject(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime)
+void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime)
 {
     object.Logic.Behavior->update(object.Logic, player, world, deltaTime);
 
     switch (object.Logic.GetActivity())
     {
     case ObjectActivity::Standing:
-        object.Visuals.Animation = ObjectAnimation::Standing;
         break;
 
     case ObjectActivity::Attacking:
-        object.Visuals.Animation = ObjectAnimation::Attacking;
         break;
 
     case ObjectActivity::Dead:
-        object.Visuals.Animation = ObjectAnimation::Dead;
         break;
 
     case ObjectActivity::Walking: {
-        object.Visuals.Animation = ObjectAnimation::Walking;
         const float velocity = 120;
         const auto change = object.Logic.Direction * deltaTime.asSeconds() * velocity;
         object.Logic.Position.x += change.x;
@@ -411,16 +407,44 @@ void updateObject(Object &object, LogicEntity &player, World &world, const sf::T
         break;
     }
     }
+}
 
-    object.Visuals.AnimationTime += deltaTime.asMilliseconds();
-    object.Visuals.Sprite.setTextureRect(object.Visuals.Cutter(object.Visuals.Animation, object.Visuals.AnimationTime,
-                                                               DirectionFromVector(object.Logic.Direction),
-                                                               object.Visuals.SpriteSize));
+void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime)
+{
+    switch (logic.GetActivity())
+    {
+    case ObjectActivity::Standing:
+        visuals.Animation = ObjectAnimation::Standing;
+        break;
+
+    case ObjectActivity::Attacking:
+        visuals.Animation = ObjectAnimation::Attacking;
+        break;
+
+    case ObjectActivity::Dead:
+        visuals.Animation = ObjectAnimation::Dead;
+        break;
+
+    case ObjectActivity::Walking: {
+        visuals.Animation = ObjectAnimation::Walking;
+        break;
+    }
+    }
+
+    visuals.AnimationTime += deltaTime.asMilliseconds();
+    visuals.Sprite.setTextureRect(visuals.Cutter(
+        visuals.Animation, visuals.AnimationTime, DirectionFromVector(logic.Direction), visuals.SpriteSize));
     // the position of an object is at the bottom center of the sprite (on the ground)
-    object.Visuals.Sprite.setPosition(object.Logic.Position -
-                                      sf::Vector2f(static_cast<float>(object.Visuals.SpriteSize.x / 2),
-                                                   static_cast<float>(object.Visuals.SpriteSize.y)) +
-                                      sf::Vector2f(0, static_cast<float>(object.Visuals.VerticalOffset)));
+    visuals.Sprite.setPosition(
+        logic.Position -
+        sf::Vector2f(static_cast<float>(visuals.SpriteSize.x / 2), static_cast<float>(visuals.SpriteSize.y)) +
+        sf::Vector2f(0, static_cast<float>(visuals.VerticalOffset)));
+}
+
+void updateObject(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime)
+{
+    updateLogic(object, player, world, deltaTime);
+    updateVisuals(object.Logic, object.Visuals, deltaTime);
 }
 
 float bottomOfSprite(const sf::Sprite &sprite)
