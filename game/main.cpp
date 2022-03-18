@@ -127,15 +127,35 @@ enum class ObjectActivity
     Dead
 };
 
-struct Object;
+struct LogicEntity;
+
+bool isDead(const LogicEntity &entity);
 
 struct LogicEntity
 {
+    ObjectActivity GetActivity() const
+    {
+        return Activity;
+    }
+
+    void SetActivity(const ObjectActivity activity)
+    {
+        if (isDead(*this))
+        {
+            Activity = ObjectActivity::Dead;
+            return;
+        }
+        Activity = activity;
+    }
+
     std::unique_ptr<ObjectBehavior> Behavior;
     Health currentHealth = 1;
     Health maximumHealth = 1;
     sf::Vector2f Position;
     sf::Vector2f Direction;
+
+private:
+    ObjectActivity Activity = ObjectActivity::Standing;
 };
 
 bool isDead(const LogicEntity &entity)
@@ -145,38 +165,18 @@ bool isDead(const LogicEntity &entity)
 
 struct Object
 {
-    ObjectActivity GetActivity() const
-    {
-        return Activity;
-    }
-
-    void SetActivity(const ObjectActivity activity)
-    {
-        if (isDead(Logic))
-        {
-            Activity = ObjectActivity::Dead;
-            return;
-        }
-        Activity = activity;
-    }
-
     VisualEntity Visuals;
-
-private:
-    ObjectActivity Activity = ObjectActivity::Standing;
-
-public:
     LogicEntity Logic;
 };
 
-void inflictDamage(Object &defender, const Health damage)
+void inflictDamage(LogicEntity &defender, const Health damage)
 {
-    defender.Logic.currentHealth -= damage;
-    if (defender.Logic.currentHealth < 0)
+    defender.currentHealth -= damage;
+    if (defender.currentHealth < 0)
     {
-        defender.Logic.currentHealth = 0;
+        defender.currentHealth = 0;
     }
-    if (isDead(defender.Logic))
+    if (isDead(defender))
     {
         defender.SetActivity(ObjectActivity::Dead);
     }
@@ -193,7 +193,7 @@ struct ObjectBehavior
     {
     }
 
-    virtual void update(Object &object, Object &player, World &world, const sf::Time &deltaTime) = 0;
+    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime) = 0;
 };
 
 struct PlayerCharacter final : ObjectBehavior
@@ -207,7 +207,7 @@ struct PlayerCharacter final : ObjectBehavior
     {
     }
 
-    virtual void update(Object &object, Object &player, World &world, const sf::Time &deltaTime) final
+    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime) final
     {
         assert(&object == &player);
         (void)player;
@@ -224,12 +224,12 @@ struct PlayerCharacter final : ObjectBehavior
         }
         if (direction == sf::Vector2f())
         {
-            if (isAttackPressed && !isDead(object.Logic))
+            if (isAttackPressed && !isDead(object))
             {
                 object.SetActivity(ObjectActivity::Attacking);
                 for (Object &enemy : world.enemies)
                 {
-                    inflictDamage(enemy, 1);
+                    inflictDamage(enemy.Logic, 1);
                 }
             }
             else
@@ -240,7 +240,7 @@ struct PlayerCharacter final : ObjectBehavior
         else
         {
             object.SetActivity(ObjectActivity::Walking);
-            object.Logic.Direction = normalize(direction);
+            object.Direction = normalize(direction);
         }
     }
 };
@@ -254,17 +254,17 @@ bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, con
 
 struct Bot final : ObjectBehavior
 {
-    virtual void update(Object &object, Object &player, World &world, const sf::Time &deltaTime) final
+    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime) final
     {
         (void)world;
-        if (isDead(object.Logic))
+        if (isDead(object))
         {
             return;
         }
         switch (_state)
         {
         case State::MovingAround:
-            if (isWithinDistance(object.Logic.Position, player.Logic.Position, 400) && !isDead(player.Logic))
+            if (isWithinDistance(object.Position, player.Position, 400) && !isDead(player))
             {
                 _state = State::Chasing;
                 _target = &player;
@@ -283,22 +283,22 @@ struct Bot final : ObjectBehavior
                     object.SetActivity(ObjectActivity::Standing);
                     break;
                 }
-                object.Logic.Direction = normalize(
+                object.Direction = normalize(
                     sf::Vector2f(static_cast<float>(std::rand() % 10 - 5), static_cast<float>(std::rand() % 10 - 5)));
             }
             break;
 
         case State::Chasing:
-            if (isWithinDistance(object.Logic.Position, _target->Logic.Position, 80))
+            if (isWithinDistance(object.Position, _target->Position, 80))
             {
                 _state = State::Attacking;
                 object.SetActivity(ObjectActivity::Standing);
                 break;
             }
-            if (isWithinDistance(object.Logic.Position, _target->Logic.Position, 600))
+            if (isWithinDistance(object.Position, _target->Position, 600))
             {
                 object.SetActivity(ObjectActivity::Walking);
-                object.Logic.Direction = normalize(_target->Logic.Position - object.Logic.Position);
+                object.Direction = normalize(_target->Position - object.Position);
             }
             else
             {
@@ -309,7 +309,7 @@ struct Bot final : ObjectBehavior
             break;
 
         case State::Attacking:
-            if (!isWithinDistance(object.Logic.Position, _target->Logic.Position, 100))
+            if (!isWithinDistance(object.Position, _target->Position, 100))
             {
                 _state = State::Chasing;
                 object.SetActivity(ObjectActivity::Standing);
@@ -323,7 +323,7 @@ struct Bot final : ObjectBehavior
                 inflictDamage(player, 1);
                 _sinceLastAttack -= attackDelay;
             }
-            if (isDead(player.Logic))
+            if (isDead(player))
             {
                 _state = State::MovingAround;
                 object.SetActivity(ObjectActivity::Standing);
@@ -341,7 +341,7 @@ private:
     };
 
     State _state = State::MovingAround;
-    Object *_target = nullptr;
+    LogicEntity *_target = nullptr;
     sf::Int32 _sinceLastAttack = 0;
 };
 
@@ -374,11 +374,11 @@ struct Camera
     }
 };
 
-void updateObject(Object &object, Object &player, World &world, const sf::Time &deltaTime)
+void updateObject(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime)
 {
-    object.Logic.Behavior->update(object, player, world, deltaTime);
+    object.Logic.Behavior->update(object.Logic, player, world, deltaTime);
 
-    switch (object.GetActivity())
+    switch (object.Logic.GetActivity())
     {
     case ObjectActivity::Standing:
         object.Visuals.Animation = ObjectAnimation::Standing;
@@ -618,13 +618,13 @@ int main()
 
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
-        updateObject(player, player, world, deltaTime);
+        updateObject(player, player.Logic, world, deltaTime);
         camera.Center = player.Logic.Position;
         spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
 
         for (Object &enemy : world.enemies)
         {
-            updateObject(enemy, player, world, deltaTime);
+            updateObject(enemy, player.Logic, world, deltaTime);
             spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
         }
 
