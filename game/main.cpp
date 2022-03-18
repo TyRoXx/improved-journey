@@ -148,19 +148,42 @@ struct LogicEntity
         Activity = activity;
     }
 
+    void inflictDamage(const Health damage)
+    {
+        currentHealth -= damage;
+        if (currentHealth < 0)
+        {
+            currentHealth = 0;
+        }
+        if (isDead(*this))
+        {
+            SetActivity(ObjectActivity::Dead);
+        }
+    }
+
+    Health GetCurrentHealth() const
+    {
+        return currentHealth;
+    }
+
+    Health GetMaximumHealth() const
+    {
+        return maximumHealth;
+    }
+
     std::unique_ptr<ObjectBehavior> Behavior;
-    Health currentHealth = 1;
-    Health maximumHealth = 1;
     sf::Vector2f Position;
     sf::Vector2f Direction;
 
 private:
+    Health currentHealth = 100;
+    Health maximumHealth = 100;
     ObjectActivity Activity = ObjectActivity::Standing;
 };
 
 bool isDead(const LogicEntity &entity)
 {
-    return (entity.currentHealth == 0);
+    return (entity.GetCurrentHealth() == 0);
 }
 
 struct Object
@@ -168,19 +191,6 @@ struct Object
     VisualEntity Visuals;
     LogicEntity Logic;
 };
-
-void inflictDamage(LogicEntity &defender, const Health damage)
-{
-    defender.currentHealth -= damage;
-    if (defender.currentHealth < 0)
-    {
-        defender.currentHealth = 0;
-    }
-    if (isDead(defender))
-    {
-        defender.SetActivity(ObjectActivity::Dead);
-    }
-}
 
 struct World
 {
@@ -229,7 +239,7 @@ struct PlayerCharacter final : ObjectBehavior
                 object.SetActivity(ObjectActivity::Attacking);
                 for (Object &enemy : world.enemies)
                 {
-                    inflictDamage(enemy.Logic, 1);
+                    enemy.Logic.inflictDamage(2);
                 }
             }
             else
@@ -320,7 +330,7 @@ struct Bot final : ObjectBehavior
             while (_sinceLastAttack >= attackDelay)
             {
                 object.SetActivity(ObjectActivity::Attacking);
-                inflictDamage(player, 1);
+                player.inflictDamage(1);
                 _sinceLastAttack -= attackDelay;
             }
             if (isDead(player))
@@ -420,7 +430,7 @@ float bottomOfSprite(const sf::Sprite &sprite)
 
 void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &object)
 {
-    if (object.Logic.currentHealth == object.Logic.maximumHealth)
+    if (object.Logic.GetCurrentHealth() == object.Logic.GetMaximumHealth())
     {
         return;
     }
@@ -428,8 +438,8 @@ void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &objec
     constexpr sf::Int32 height = 4;
     const float x = object.Logic.Position.x - width / 2;
     const float y = object.Logic.Position.y - static_cast<float>(object.Visuals.Sprite.getTextureRect().height);
-    const float greenPortion = static_cast<float>(object.Logic.currentHealth) /
-                               static_cast<float>(object.Logic.maximumHealth) * static_cast<float>(width);
+    const float greenPortion = static_cast<float>(object.Logic.GetCurrentHealth()) /
+                               static_cast<float>(object.Logic.GetMaximumHealth()) * static_cast<float>(width);
     {
         sf::RectangleShape green;
         green.setPosition(sf::Vector2f(x, y));
@@ -522,7 +532,6 @@ int main()
     player.Visuals.SpriteSize = sf::Vector2i(64, 64);
     player.Logic.Position = sf::Vector2f(400, 400);
     player.Logic.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed, isAttackPressed);
-    player.Logic.currentHealth = player.Logic.maximumHealth = 100;
 
     World world;
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
@@ -536,7 +545,6 @@ int main()
         enemy.Logic.Position.y = static_cast<float>(std::rand() % 800);
         enemy.Logic.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
         enemy.Logic.Behavior = std::make_unique<Bot>();
-        enemy.Logic.currentHealth = enemy.Logic.maximumHealth = 300;
     }
 
     Camera camera{player.Logic.Position};
