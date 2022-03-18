@@ -66,7 +66,8 @@ enum class ObjectAnimation
 {
     Standing,
     Walking,
-    Attacking
+    Attacking,
+    Dead
 };
 
 using TextureCutter = sf::IntRect(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
@@ -87,6 +88,8 @@ sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const sf::Int32 ani
     case ObjectAnimation::Attacking:
         return sf::IntRect(size.x * (((animationTime / 200) % AttackFrames) + WalkFrames),
                            size.y * static_cast<int>(direction), size.x, size.y);
+    case ObjectAnimation::Dead:
+        return sf::IntRect(0, size.y * static_cast<int>(direction), size.x, size.y);
     }
     return sf::IntRect(
         size.x * ((animationTime / 150) % WalkFrames), size.y * static_cast<int>(direction), size.x, size.y);
@@ -168,7 +171,7 @@ struct PlayerCharacter final : ObjectBehavior
 
         if (isDead(object))
         {
-            object.Animation = ObjectAnimation::Standing;
+            object.Animation = ObjectAnimation::Dead;
             return;
         }
 
@@ -218,7 +221,7 @@ struct Bot final : ObjectBehavior
         (void)world;
         if (isDead(object))
         {
-            object.Animation = ObjectAnimation::Standing;
+            object.Animation = ObjectAnimation::Dead;
             return;
         }
         switch (_state)
@@ -239,6 +242,7 @@ struct Bot final : ObjectBehavior
                     break;
                 case ObjectAnimation::Walking:
                 case ObjectAnimation::Attacking:
+                case ObjectAnimation::Dead:
                     object.Animation = ObjectAnimation::Standing;
                     break;
                 }
@@ -341,6 +345,7 @@ void updateObject(Object &object, Object &player, World &world, const sf::Time &
     {
     case ObjectAnimation::Standing:
     case ObjectAnimation::Attacking:
+    case ObjectAnimation::Dead:
         break;
 
     case ObjectAnimation::Walking: {
@@ -428,6 +433,9 @@ int main()
             yOffset = 0;
             x = (size.x * ((animationTime / 80) % 7));
             break;
+
+        case ObjectAnimation::Dead:
+            return sf::IntRect(5 * size.x, 20 * size.y, size.x, size.y);
         }
         return sf::IntRect(x, size.y * (static_cast<int>(direction) + yOffset), size.x, size.y);
     };
