@@ -129,7 +129,19 @@ enum class ObjectActivity
 
 struct Object;
 
-bool isDead(const Object &object);
+struct LogicEntity
+{
+    std::unique_ptr<ObjectBehavior> Behavior;
+    Health currentHealth = 1;
+    Health maximumHealth = 1;
+    sf::Vector2f Position;
+    sf::Vector2f Direction;
+};
+
+bool isDead(const LogicEntity &entity)
+{
+    return (entity.currentHealth == 0);
+}
 
 struct Object
 {
@@ -140,7 +152,7 @@ struct Object
 
     void SetActivity(const ObjectActivity activity)
     {
-        if (isDead(*this))
+        if (isDead(Logic))
         {
             Activity = ObjectActivity::Dead;
             return;
@@ -154,29 +166,20 @@ private:
     ObjectActivity Activity = ObjectActivity::Standing;
 
 public:
-    std::unique_ptr<ObjectBehavior> Behavior;
-    sf::Vector2f Direction;
-    Health currentHealth = 1;
-    Health maximumHealth = 1;
-    sf::Vector2f Position;
+    LogicEntity Logic;
 };
 
 void inflictDamage(Object &defender, const Health damage)
 {
-    defender.currentHealth -= damage;
-    if (defender.currentHealth < 0)
+    defender.Logic.currentHealth -= damage;
+    if (defender.Logic.currentHealth < 0)
     {
-        defender.currentHealth = 0;
+        defender.Logic.currentHealth = 0;
     }
-    if (isDead(defender))
+    if (isDead(defender.Logic))
     {
         defender.SetActivity(ObjectActivity::Dead);
     }
-}
-
-bool isDead(const Object &object)
-{
-    return (object.currentHealth == 0);
 }
 
 struct World
@@ -221,7 +224,7 @@ struct PlayerCharacter final : ObjectBehavior
         }
         if (direction == sf::Vector2f())
         {
-            if (isAttackPressed && !isDead(object))
+            if (isAttackPressed && !isDead(object.Logic))
             {
                 object.SetActivity(ObjectActivity::Attacking);
                 for (Object &enemy : world.enemies)
@@ -237,7 +240,7 @@ struct PlayerCharacter final : ObjectBehavior
         else
         {
             object.SetActivity(ObjectActivity::Walking);
-            object.Direction = normalize(direction);
+            object.Logic.Direction = normalize(direction);
         }
     }
 };
@@ -254,14 +257,14 @@ struct Bot final : ObjectBehavior
     virtual void update(Object &object, Object &player, World &world, const sf::Time &deltaTime) final
     {
         (void)world;
-        if (isDead(object))
+        if (isDead(object.Logic))
         {
             return;
         }
         switch (_state)
         {
         case State::MovingAround:
-            if (isWithinDistance(object.Position, player.Position, 400) && !isDead(player))
+            if (isWithinDistance(object.Logic.Position, player.Logic.Position, 400) && !isDead(player.Logic))
             {
                 _state = State::Chasing;
                 _target = &player;
@@ -280,22 +283,22 @@ struct Bot final : ObjectBehavior
                     object.SetActivity(ObjectActivity::Standing);
                     break;
                 }
-                object.Direction = normalize(
+                object.Logic.Direction = normalize(
                     sf::Vector2f(static_cast<float>(std::rand() % 10 - 5), static_cast<float>(std::rand() % 10 - 5)));
             }
             break;
 
         case State::Chasing:
-            if (isWithinDistance(object.Position, _target->Position, 80))
+            if (isWithinDistance(object.Logic.Position, _target->Logic.Position, 80))
             {
                 _state = State::Attacking;
                 object.SetActivity(ObjectActivity::Standing);
                 break;
             }
-            if (isWithinDistance(object.Position, _target->Position, 600))
+            if (isWithinDistance(object.Logic.Position, _target->Logic.Position, 600))
             {
                 object.SetActivity(ObjectActivity::Walking);
-                object.Direction = normalize(_target->Position - object.Position);
+                object.Logic.Direction = normalize(_target->Logic.Position - object.Logic.Position);
             }
             else
             {
@@ -306,7 +309,7 @@ struct Bot final : ObjectBehavior
             break;
 
         case State::Attacking:
-            if (!isWithinDistance(object.Position, _target->Position, 100))
+            if (!isWithinDistance(object.Logic.Position, _target->Logic.Position, 100))
             {
                 _state = State::Chasing;
                 object.SetActivity(ObjectActivity::Standing);
@@ -320,7 +323,7 @@ struct Bot final : ObjectBehavior
                 inflictDamage(player, 1);
                 _sinceLastAttack -= attackDelay;
             }
-            if (isDead(player))
+            if (isDead(player.Logic))
             {
                 _state = State::MovingAround;
                 object.SetActivity(ObjectActivity::Standing);
@@ -373,7 +376,7 @@ struct Camera
 
 void updateObject(Object &object, Object &player, World &world, const sf::Time &deltaTime)
 {
-    object.Behavior->update(object, player, world, deltaTime);
+    object.Logic.Behavior->update(object, player, world, deltaTime);
 
     switch (object.GetActivity())
     {
@@ -392,19 +395,19 @@ void updateObject(Object &object, Object &player, World &world, const sf::Time &
     case ObjectActivity::Walking: {
         object.Visuals.Animation = ObjectAnimation::Walking;
         const float velocity = 120;
-        const auto change = object.Direction * deltaTime.asSeconds() * velocity;
-        object.Position.x += change.x;
-        object.Position.y += change.y;
+        const auto change = object.Logic.Direction * deltaTime.asSeconds() * velocity;
+        object.Logic.Position.x += change.x;
+        object.Logic.Position.y += change.y;
         break;
     }
     }
 
     object.Visuals.AnimationTime += deltaTime.asMilliseconds();
     object.Visuals.Sprite.setTextureRect(object.Visuals.Cutter(object.Visuals.Animation, object.Visuals.AnimationTime,
-                                                               DirectionFromVector(object.Direction),
+                                                               DirectionFromVector(object.Logic.Direction),
                                                                object.Visuals.SpriteSize));
     // the position of an object is at the bottom center of the sprite (on the ground)
-    object.Visuals.Sprite.setPosition(object.Position -
+    object.Visuals.Sprite.setPosition(object.Logic.Position -
                                       sf::Vector2f(static_cast<float>(object.Visuals.SpriteSize.x / 2),
                                                    static_cast<float>(object.Visuals.SpriteSize.y)) +
                                       sf::Vector2f(0, static_cast<float>(object.Visuals.VerticalOffset)));
@@ -417,16 +420,16 @@ float bottomOfSprite(const sf::Sprite &sprite)
 
 void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &object)
 {
-    if (object.currentHealth == object.maximumHealth)
+    if (object.Logic.currentHealth == object.Logic.maximumHealth)
     {
         return;
     }
     constexpr sf::Int32 width = 24;
     constexpr sf::Int32 height = 4;
-    const float x = object.Position.x - width / 2;
-    const float y = object.Position.y - static_cast<float>(object.Visuals.Sprite.getTextureRect().height);
-    const float greenPortion =
-        static_cast<float>(object.currentHealth) / static_cast<float>(object.maximumHealth) * static_cast<float>(width);
+    const float x = object.Logic.Position.x - width / 2;
+    const float y = object.Logic.Position.y - static_cast<float>(object.Visuals.Sprite.getTextureRect().height);
+    const float greenPortion = static_cast<float>(object.Logic.currentHealth) /
+                               static_cast<float>(object.Logic.maximumHealth) * static_cast<float>(width);
     {
         sf::RectangleShape green;
         green.setPosition(sf::Vector2f(x, y));
@@ -517,9 +520,9 @@ int main()
     player.Visuals.Sprite.setTexture(wolfsheet1Texture);
     player.Visuals.Cutter = wolfCutter;
     player.Visuals.SpriteSize = sf::Vector2i(64, 64);
-    player.Position = sf::Vector2f(400, 400);
-    player.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed, isAttackPressed);
-    player.currentHealth = player.maximumHealth = 100;
+    player.Logic.Position = sf::Vector2f(400, 400);
+    player.Logic.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed, isAttackPressed);
+    player.Logic.currentHealth = player.Logic.maximumHealth = 100;
 
     World world;
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
@@ -529,14 +532,14 @@ int main()
         enemy.Visuals.Cutter = enemyTextureCutters[i];
         enemy.Visuals.SpriteSize = enemySizes[i];
         enemy.Visuals.VerticalOffset = enemyVerticalOffset[i];
-        enemy.Position.x = static_cast<float>(std::rand() % 1200);
-        enemy.Position.y = static_cast<float>(std::rand() % 800);
-        enemy.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
-        enemy.Behavior = std::make_unique<Bot>();
-        enemy.currentHealth = enemy.maximumHealth = 300;
+        enemy.Logic.Position.x = static_cast<float>(std::rand() % 1200);
+        enemy.Logic.Position.y = static_cast<float>(std::rand() % 800);
+        enemy.Logic.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
+        enemy.Logic.Behavior = std::make_unique<Bot>();
+        enemy.Logic.currentHealth = enemy.Logic.maximumHealth = 300;
     }
 
-    Camera camera{player.Position};
+    Camera camera{player.Logic.Position};
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -616,7 +619,7 @@ int main()
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
         updateObject(player, player, world, deltaTime);
-        camera.Center = player.Position;
+        camera.Center = player.Logic.Position;
         spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
 
         for (Object &enemy : world.enemies)
@@ -644,7 +647,7 @@ int main()
             sf::CircleShape circle(1);
             circle.setOutlineColor(sf::Color(0, 255, 0));
             circle.setFillColor(sf::Color(0, 255, 0));
-            circle.setPosition(player.Position);
+            circle.setPosition(player.Logic.Position);
             camera.draw(window, circle);
         }
         for (const Object &enemy : world.enemies)
@@ -652,7 +655,7 @@ int main()
             sf::CircleShape circle(1);
             circle.setOutlineColor(sf::Color(255, 0, 0));
             circle.setFillColor(sf::Color(255, 0, 0));
-            circle.setPosition(enemy.Position);
+            circle.setPosition(enemy.Logic.Position);
             camera.draw(window, circle);
         }
 
