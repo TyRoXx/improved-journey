@@ -150,8 +150,12 @@ struct LogicEntity
         Activity = activity;
     }
 
-    void inflictDamage(const Health damage)
+    [[nodiscard]] bool inflictDamage(const Health damage)
     {
+        if (currentHealth == 0)
+        {
+            return false;
+        }
         currentHealth -= damage;
         if (currentHealth < 0)
         {
@@ -161,6 +165,7 @@ struct LogicEntity
         {
             SetActivity(ObjectActivity::Dead);
         }
+        return true;
     }
 
     Health GetCurrentHealth() const
@@ -255,7 +260,10 @@ struct World final
 
 void InflictDamage(LogicEntity &damaged, World &world, const Health damage)
 {
-    damaged.inflictDamage(damage);
+    if (!damaged.inflictDamage(damage))
+    {
+        return;
+    }
     world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font);
 }
 
