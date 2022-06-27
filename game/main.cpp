@@ -635,6 +635,15 @@ int main()
 
         const sf::Time deltaTime = deltaClock.restart();
         ImGui::SFML::Update(window, deltaTime);
+        ImGui::Begin("Character");
+        {
+            ImGui::Text("Health");
+            ImGui::SameLine();
+            ImGui::ProgressBar(static_cast<float>(player.Logic.GetCurrentHealth()) /
+                               static_cast<float>(player.Logic.GetMaximumHealth()));
+        }
+        ImGui::End();
+
         window.clear();
 
         for (sf::Int32 y = 0; y < 30; ++y)
