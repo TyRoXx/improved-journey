@@ -478,7 +478,7 @@ void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Ti
         break;
 
     case ObjectActivity::Walking: {
-        const float velocity = 120;
+        const float velocity = 80;
         const auto change = object.Logic.Direction * deltaTime.asSeconds() * velocity;
         object.Logic.Position.x += change.x;
         object.Logic.Position.y += change.y;
@@ -650,15 +650,18 @@ int main()
     World world(font);
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
     {
-        Object &enemy = world.enemies.emplace_back();
-        enemy.Visuals.Sprite.setTexture(enemyTextures[i]);
-        enemy.Visuals.Cutter = enemyTextureCutters[i];
-        enemy.Visuals.SpriteSize = enemySizes[i];
-        enemy.Visuals.VerticalOffset = enemyVerticalOffset[i];
-        enemy.Logic.Position.x = static_cast<float>(std::rand() % 1200);
-        enemy.Logic.Position.y = static_cast<float>(std::rand() % 800);
-        enemy.Logic.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
-        enemy.Logic.Behavior = std::make_unique<Bot>();
+        for (size_t k = 0; k < 5; ++k)
+        {
+            Object &enemy = world.enemies.emplace_back();
+            enemy.Visuals.Sprite.setTexture(enemyTextures[i]);
+            enemy.Visuals.Cutter = enemyTextureCutters[i];
+            enemy.Visuals.SpriteSize = enemySizes[i];
+            enemy.Visuals.VerticalOffset = enemyVerticalOffset[i];
+            enemy.Logic.Position.x = static_cast<float>(std::rand() % 1200);
+            enemy.Logic.Position.y = static_cast<float>(std::rand() % 800);
+            enemy.Logic.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
+            enemy.Logic.Behavior = std::make_unique<Bot>();
+        }
     }
 
     Camera camera{player.Logic.Position};
