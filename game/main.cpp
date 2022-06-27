@@ -224,6 +224,23 @@ struct FloatingText final
     }
 };
 
+struct Map final
+{
+    std::vector<int> Tiles;
+    size_t Width;
+};
+
+Map GenerateRandomMap()
+{
+    Map result;
+    result.Width = 30;
+    for (size_t i = 0; i < (30 * result.Width); ++i)
+    {
+        result.Tiles.push_back(std::rand() % 3);
+    }
+    return result;
+}
+
 struct World final
 {
     std::vector<Object> enemies;
@@ -617,6 +634,8 @@ int main()
     player.Logic.Position = sf::Vector2f(400, 400);
     player.Logic.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed, isAttackPressed);
 
+    const Map map = GenerateRandomMap();
+
     World world(font);
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
     {
@@ -706,12 +725,12 @@ int main()
 
         window.clear();
 
-        for (sf::Int32 y = 0; y < 30; ++y)
+        for (size_t y = 0, height = (map.Tiles.size() / map.Width); y < height; ++y)
         {
-            for (sf::Int32 x = 0; x < 30; ++x)
+            for (size_t x = 0; x < map.Width; ++x)
             {
                 sf::Sprite grass(grassTexture);
-                grass.setTextureRect(sf::IntRect(((x + y) % 3) * 32, 160, 32, 32));
+                grass.setTextureRect(sf::IntRect(map.Tiles[(y * map.Width) + x] * 32, 160, 32, 32));
                 grass.setPosition(sf::Vector2f(static_cast<float>(x) * 32.0f, static_cast<float>(y) * 32.0f));
                 camera.draw(window, grass);
             }
