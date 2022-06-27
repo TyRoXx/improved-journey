@@ -4,11 +4,13 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
 #include <array>
 #include <filesystem>
+#include <fmt/format.h>
 #include <iostream>
 
 #define IJ_UNREACHABLE() __assume(false)
@@ -186,16 +188,59 @@ bool isDead(const LogicEntity &entity)
     return (entity.GetCurrentHealth() == 0);
 }
 
-struct Object
+struct Object final
 {
     VisualEntity Visuals;
     LogicEntity Logic;
 };
 
-struct World
+struct FloatingText final
+{
+    std::unique_ptr<sf::Text> Text;
+    sf::Time Age;
+    sf::Time MaxAge;
+
+    explicit FloatingText(const sf::String &text, const sf::Vector2f &position, const sf::Font &font)
+        : Text(std::make_unique<sf::Text>(text, font, 16))
+        , Age()
+        , MaxAge(sf::milliseconds(3000 + std::rand() % 1000))
+    {
+        Text->setPosition(position + sf::Vector2f(static_cast<float>(20 - (std::rand() % 40)),
+                                                  static_cast<float>(-100 + (std::rand() % 40))));
+        Text->setFillColor(sf::Color::Red);
+        Text->setOutlineColor(sf::Color::White);
+        Text->setOutlineThickness(1);
+    }
+
+    void Update(const sf::Time &deltaTime)
+    {
+        Age += deltaTime;
+        Text->setPosition(Text->getPosition() + sf::Vector2f(0, deltaTime.asSeconds() * -10));
+    }
+
+    bool HasExpired() const
+    {
+        return (Age >= MaxAge);
+    }
+};
+
+struct World final
 {
     std::vector<Object> enemies;
+    std::vector<FloatingText> FloatingTexts;
+    const sf::Font &Font;
+
+    explicit World(const sf::Font &font)
+        : Font(font)
+    {
+    }
 };
+
+void InflictDamage(LogicEntity &damaged, World &world, const Health damage)
+{
+    damaged.inflictDamage(damage);
+    world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font);
+}
 
 struct ObjectBehavior
 {
@@ -239,7 +284,7 @@ struct PlayerCharacter final : ObjectBehavior
                 object.SetActivity(ObjectActivity::Attacking);
                 for (Object &enemy : world.enemies)
                 {
-                    enemy.Logic.inflictDamage(2);
+                    InflictDamage(enemy.Logic, world, 2);
                 }
             }
             else
@@ -330,7 +375,7 @@ struct Bot final : ObjectBehavior
             while (_sinceLastAttack >= attackDelay)
             {
                 object.SetActivity(ObjectActivity::Attacking);
-                player.inflictDamage(1);
+                InflictDamage(player, world, 1);
                 _sinceLastAttack -= attackDelay;
             }
             if (isDead(player))
@@ -378,6 +423,14 @@ struct Camera
     void draw(sf::RenderWindow &window, const sf::RectangleShape &shape)
     {
         sf::RectangleShape moved(shape);
+        moved.move(-Center);
+        moved.move(sf::Vector2f(window.getSize()) * 0.5f);
+        window.draw(moved);
+    }
+
+    void draw(sf::RenderWindow &window, const sf::Text &text)
+    {
+        sf::Text moved(text);
         moved.move(-Center);
         moved.move(sf::Vector2f(window.getSize()) * 0.5f);
         window.draw(moved);
@@ -487,6 +540,13 @@ int main()
     ImGui::SFML::Init(window);
 
     const auto assets = std::filesystem::current_path().parent_path().parent_path() / "improved-journey" / "assets";
+
+    sf::Font font;
+    if (!font.loadFromFile((assets / "Roboto-Font" / "Roboto-Light.ttf").string()))
+    {
+        return 1;
+    }
+
     const auto wolfsheet1File = (assets / "LPC Wolfman" / "Male" / "Gray" / "Universal.png");
     assert(std::filesystem::exists(wolfsheet1File));
 
@@ -557,7 +617,7 @@ int main()
     player.Logic.Position = sf::Vector2f(400, 400);
     player.Logic.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed, isAttackPressed);
 
-    World world;
+    World world(font);
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
     {
         Object &enemy = world.enemies.emplace_back();
@@ -669,6 +729,24 @@ int main()
             spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
         }
 
+        for (size_t i = 0; i < world.FloatingTexts.size();)
+        {
+            world.FloatingTexts[i].Update(deltaTime);
+            if (world.FloatingTexts[i].HasExpired())
+            {
+                using std::swap;
+                if ((i + 1) >= world.FloatingTexts.size())
+                {
+                    world.FloatingTexts[i] = std::move(world.FloatingTexts.back());
+                }
+                world.FloatingTexts.pop_back();
+            }
+            else
+            {
+                ++i;
+            }
+        }
+
         std::ranges::sort(
             spritesToDrawInZOrder, [](const sf::Sprite *const left, const sf::Sprite *const right) -> bool {
                 return (bottomOfSprite(*left) < bottomOfSprite(*right));
@@ -676,6 +754,11 @@ int main()
         for (const sf::Sprite *const sprite : spritesToDrawInZOrder)
         {
             camera.draw(window, *sprite);
+        }
+
+        for (FloatingText &floatingText : world.FloatingTexts)
+        {
+            camera.draw(window, *floatingText.Text);
         }
 
         drawHealthBar(window, camera, player);
