@@ -489,6 +489,7 @@ void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Ti
 
 void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime)
 {
+    bool isColoredDead = false;
     switch (logic.GetActivity())
     {
     case ObjectActivity::Standing:
@@ -501,6 +502,7 @@ void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Ti
 
     case ObjectActivity::Dead:
         visuals.Animation = ObjectAnimation::Dead;
+        isColoredDead = true;
         break;
 
     case ObjectActivity::Walking: {
@@ -517,6 +519,7 @@ void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Ti
         logic.Position -
         sf::Vector2f(static_cast<float>(visuals.SpriteSize.x / 2), static_cast<float>(visuals.SpriteSize.y)) +
         sf::Vector2f(0, static_cast<float>(visuals.VerticalOffset)));
+    visuals.Sprite.setColor(isColoredDead ? sf::Color(128, 128, 128, 255) : sf::Color::White);
 }
 
 void updateObject(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime)
