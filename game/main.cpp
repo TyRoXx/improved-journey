@@ -369,7 +369,7 @@ struct Bot final : ObjectBehavior
             break;
 
         case State::Chasing:
-            if (isWithinDistance(object.Position, _target->Position, 80))
+            if (isWithinDistance(object.Position, _target->Position, 40))
             {
                 _state = State::Attacking;
                 object.SetActivity(ObjectActivity::Standing);
@@ -389,7 +389,7 @@ struct Bot final : ObjectBehavior
             break;
 
         case State::Attacking:
-            if (!isWithinDistance(object.Position, _target->Position, 100))
+            if (!isWithinDistance(object.Position, _target->Position, 60))
             {
                 _state = State::Chasing;
                 object.SetActivity(ObjectActivity::Standing);
