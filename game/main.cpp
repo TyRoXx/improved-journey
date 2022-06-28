@@ -233,6 +233,11 @@ struct Map final
 {
     std::vector<int> Tiles;
     size_t Width;
+
+    size_t GetHeight() const
+    {
+        return Tiles.size() / Width;
+    }
 };
 
 Map GenerateRandomMap()
@@ -251,9 +256,11 @@ struct World final
     std::vector<Object> enemies;
     std::vector<FloatingText> FloatingTexts;
     const sf::Font &Font;
+    const Map &map;
 
-    explicit World(const sf::Font &font)
+    explicit World(const sf::Font &font, const Map &map)
         : Font(font)
+        , map(map)
     {
     }
 };
@@ -462,6 +469,32 @@ struct Camera
     }
 };
 
+constexpr int TileSize = 32;
+
+[[nodiscard]] bool IsInsideOfWorld(const sf::Vector2f &point, const World &world)
+{
+    const sf::Vector2f tile = point / static_cast<float>(TileSize);
+    if ((tile.x < 0) || (tile.y < 0))
+    {
+        return false;
+    }
+    if ((tile.x >= static_cast<float>(world.map.Width)) || (tile.y >= static_cast<float>(world.map.GetHeight())))
+    {
+        return false;
+    }
+    return true;
+}
+
+[[nodiscard]] sf::Vector2f MoveWithCollisionDetection(const sf::Vector2f &from, const sf::Vector2f &to,
+                                                      const World &world)
+{
+    if (IsInsideOfWorld(to, world))
+    {
+        return to;
+    }
+    return from;
+}
+
 void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime)
 {
     object.Logic.Behavior->update(object.Logic, player, world, deltaTime);
@@ -480,8 +513,8 @@ void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Ti
     case ObjectActivity::Walking: {
         const float velocity = 80;
         const auto change = object.Logic.Direction * deltaTime.asSeconds() * velocity;
-        object.Logic.Position.x += change.x;
-        object.Logic.Position.y += change.y;
+        object.Logic.Position =
+            MoveWithCollisionDetection(object.Logic.Position, object.Logic.Position + change, world);
         break;
     }
     }
@@ -647,7 +680,7 @@ int main()
 
     const Map map = GenerateRandomMap();
 
-    World world(font);
+    World world(font, map);
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
     {
         for (size_t k = 0; k < 5; ++k)
@@ -744,8 +777,8 @@ int main()
             for (size_t x = 0; x < map.Width; ++x)
             {
                 sf::Sprite grass(grassTexture);
-                grass.setTextureRect(sf::IntRect(map.Tiles[(y * map.Width) + x] * 32, 160, 32, 32));
-                grass.setPosition(sf::Vector2f(static_cast<float>(x) * 32.0f, static_cast<float>(y) * 32.0f));
+                grass.setTextureRect(sf::IntRect(map.Tiles[(y * map.Width) + x] * TileSize, 160, TileSize, TileSize));
+                grass.setPosition(sf::Vector2f(static_cast<float>(x) * TileSize, static_cast<float>(y) * TileSize));
                 camera.draw(window, grass);
             }
         }
