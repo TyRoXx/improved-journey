@@ -212,7 +212,7 @@ struct FloatingText final
     sf::Time MaxAge;
 
     explicit FloatingText(const sf::String &text, const sf::Vector2f &position, const sf::Font &font)
-        : Text(std::make_unique<sf::Text>(text, font, 14))
+        : Text(std::make_unique<sf::Text>(text, font, 14u))
         , Age()
         , MaxAge(sf::milliseconds(5000 + (std::rand() % 5000)))
     {
@@ -322,7 +322,7 @@ struct PlayerCharacter final : ObjectBehavior
         (void)deltaTime;
 
         sf::Vector2f direction;
-        for (sf::Int32 i = 0; i < 4; ++i)
+        for (size_t i = 0; i < 4; ++i)
         {
             if (!isDirectionKeyPressed[i])
             {
