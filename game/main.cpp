@@ -885,11 +885,24 @@ int main()
         }
         for (const Object &enemy : world.enemies)
         {
-            sf::CircleShape circle(1);
-            circle.setOutlineColor(sf::Color(255, 0, 0));
-            circle.setFillColor(sf::Color(255, 0, 0));
-            circle.setPosition(enemy.Logic.Position);
-            camera.draw(window, circle);
+            {
+                sf::CircleShape circle(1);
+                circle.setOutlineColor(sf::Color(255, 0, 0));
+                circle.setFillColor(sf::Color(255, 0, 0));
+                circle.setPosition(enemy.Logic.Position);
+                camera.draw(window, circle);
+            }
+
+            if (&enemy == selectedEnemy)
+            {
+                sf::RectangleShape rect;
+                rect.setPosition(enemy.Logic.Position - enemy.Visuals.GetOffset());
+                rect.setSize(sf::Vector2f(enemy.Visuals.SpriteSize));
+                rect.setFillColor(sf::Color::Transparent);
+                rect.setOutlineColor(sf::Color::White);
+                rect.setOutlineThickness(1);
+                camera.draw(window, rect);
+            }
         }
 
         ImGui::SFML::Render(window);
