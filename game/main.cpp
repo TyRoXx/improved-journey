@@ -119,6 +119,12 @@ struct VisualEntity
     sf::Int32 AnimationTime = 0;
     TextureCutter *Cutter = nullptr;
     ObjectAnimation Animation = ObjectAnimation::Standing;
+
+    sf::Vector2f GetOffset() const
+    {
+        return sf::Vector2f(static_cast<float>(SpriteSize.x / 2), static_cast<float>(SpriteSize.y)) -
+               sf::Vector2f(0, static_cast<float>(VerticalOffset));
+    }
 };
 
 enum class ObjectActivity
@@ -240,7 +246,7 @@ struct Map final
     }
 };
 
-Map GenerateRandomMap()
+[[nodiscard]] Map GenerateRandomMap()
 {
     Map result;
     result.Width = 30;
@@ -264,6 +270,21 @@ struct World final
     {
     }
 };
+
+[[nodiscard]] Object *FindEnemyByPosition(World &world, const sf::Vector2f &position)
+{
+    for (Object &enemy : world.enemies)
+    {
+        const sf::Vector2f topLeft = enemy.Logic.Position - enemy.Visuals.GetOffset();
+        const sf::Vector2f bottomRight = topLeft + sf::Vector2f(enemy.Visuals.SpriteSize);
+        if ((position.x >= topLeft.x) && (position.x <= bottomRight.x) && (position.y >= topLeft.y) &&
+            (position.y <= bottomRight.y))
+        {
+            return &enemy;
+        }
+    }
+    return nullptr;
+}
 
 void InflictDamage(LogicEntity &damaged, World &world, const Health damage)
 {
@@ -467,6 +488,11 @@ struct Camera
         moved.move(sf::Vector2f(window.getSize()) * 0.5f);
         window.draw(moved);
     }
+
+    sf::Vector2f getWorldFromScreenCoordinates(const sf::RenderWindow &window, const sf::Vector2i &point)
+    {
+        return (sf::Vector2f(window.getSize()) * -0.5f) + Center + sf::Vector2f(point);
+    }
 };
 
 constexpr int TileSize = 32;
@@ -548,10 +574,7 @@ void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Ti
     visuals.Sprite.setTextureRect(visuals.Cutter(
         visuals.Animation, visuals.AnimationTime, DirectionFromVector(logic.Direction), visuals.SpriteSize));
     // the position of an object is at the bottom center of the sprite (on the ground)
-    visuals.Sprite.setPosition(
-        logic.Position -
-        sf::Vector2f(static_cast<float>(visuals.SpriteSize.x / 2), static_cast<float>(visuals.SpriteSize.y)) +
-        sf::Vector2f(0, static_cast<float>(visuals.VerticalOffset)));
+    visuals.Sprite.setPosition(logic.Position - visuals.GetOffset());
     visuals.Sprite.setColor(isColoredDead ? sf::Color(128, 128, 128, 255) : sf::Color::White);
 }
 
@@ -698,6 +721,7 @@ int main()
     }
 
     Camera camera{player.Logic.Position};
+    Object *selectedEnemy = nullptr;
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -705,7 +729,7 @@ int main()
         sf::Event event;
         while (window.pollEvent(event))
         {
-            ImGui::SFML::ProcessEvent(event);
+            ImGui::SFML::ProcessEvent(window, event);
 
             if (event.type == sf::Event::Closed)
             {
@@ -757,6 +781,13 @@ int main()
                     break;
                 }
             }
+            else if (!ImGui::GetIO().WantCaptureMouse && (event.type == sf::Event::MouseButtonPressed) &&
+                     (event.mouseButton.button == sf::Mouse::Button::Left))
+            {
+                const sf::Vector2f pointInWorld = camera.getWorldFromScreenCoordinates(
+                    window, sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+                selectedEnemy = FindEnemyByPosition(world, pointInWorld);
+            }
         }
 
         const sf::Time deltaTime = deltaClock.restart();
@@ -769,6 +800,18 @@ int main()
                                static_cast<float>(player.Logic.GetMaximumHealth()));
         }
         ImGui::End();
+
+        if (selectedEnemy)
+        {
+            ImGui::Begin("Enemy");
+            {
+                ImGui::Text("Health");
+                ImGui::SameLine();
+                ImGui::ProgressBar(static_cast<float>(selectedEnemy->Logic.GetCurrentHealth()) /
+                                   static_cast<float>(selectedEnemy->Logic.GetMaximumHealth()));
+            }
+            ImGui::End();
+        }
 
         window.clear();
 

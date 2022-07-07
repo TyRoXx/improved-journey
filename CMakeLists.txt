@@ -54,7 +54,7 @@ if(FO_CLANG_FORMAT)
     file(GLOB_RECURSE formatted
         benchmarks/**.cpp benchmarks/**.h
         tests/**.cpp tests/**.h
-        lpg2/**.cpp lpg2/**.h
+        game/**.cpp game/**.h
     )
     add_custom_target(clang-format COMMAND "${FO_CLANG_FORMAT}" -i ${formatted} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endif()
