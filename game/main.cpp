@@ -212,14 +212,14 @@ struct FloatingText final
     sf::Time MaxAge;
 
     explicit FloatingText(const sf::String &text, const sf::Vector2f &position, const sf::Font &font)
-        : Text(std::make_unique<sf::Text>(text, font, 16))
+        : Text(std::make_unique<sf::Text>(text, font, 14))
         , Age()
-        , MaxAge(sf::milliseconds(3000 + std::rand() % 1000))
+        , MaxAge(sf::milliseconds(5000 + (std::rand() % 5000)))
     {
         Text->setPosition(position + sf::Vector2f(static_cast<float>(20 - (std::rand() % 40)),
                                                   static_cast<float>(-100 + (std::rand() % 40))));
         Text->setFillColor(sf::Color::Red);
-        Text->setOutlineColor(sf::Color::White);
+        Text->setOutlineColor(sf::Color::Black);
         Text->setOutlineThickness(1);
     }
 
