@@ -1,4 +1,4 @@
-# Visual Studio
+# Visual Studio 2022
 
 * clone recursively
 * run configure.bat
