@@ -58,6 +58,10 @@ if(MSVC)
     add_definitions(/wd5045)
     add_definitions(/wd5026)
     add_definitions(/wd5204)
+    # fallthrough warning in standard header
+    add_definitions(/wd5262)
+    # unused variable warning in standard header
+    add_definitions(/wd5264)
     # left-to-right evaluation order
     add_definitions(/wd4868)
 endif()
