@@ -521,8 +521,8 @@ constexpr int TileSize = 32;
 
 [[nodiscard]] bool IsWalkable(const sf::Vector2f &point, const World &world)
 {
-    const sf::Vector2<ptrdiff_t> tileIndex(static_cast<ptrdiff_t>(point.x / static_cast<float>(TileSize)),
-                                           static_cast<ptrdiff_t>(point.y / static_cast<float>(TileSize)));
+    const sf::Vector2<ptrdiff_t> tileIndex(static_cast<ptrdiff_t>(std::floor(point.x / static_cast<float>(TileSize))),
+                                           static_cast<ptrdiff_t>(std::floor(point.y / static_cast<float>(TileSize))));
     if ((tileIndex.x < 0) || (tileIndex.y < 0))
     {
         return false;
