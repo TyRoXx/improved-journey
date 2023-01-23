@@ -617,6 +617,27 @@ void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &objec
     }
 }
 
+void loadAllSprites(const std::filesystem::path &assets)
+{
+    std::filesystem::directory_iterator i(assets);
+    for (; i != std::filesystem::directory_iterator(); ++i)
+    {
+        const auto &entry = *i;
+        if (entry.is_directory())
+        {
+            loadAllSprites(entry.path());
+        }
+        else if (entry.is_regular_file() && (entry.path().extension() == ".png"))
+        {
+            sf::Texture texture;
+            if (!texture.loadFromFile(entry.path().string()))
+            {
+                std::cerr << "Could not load " << entry.path() << '\n';
+            }
+        }
+    }
+}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
@@ -624,6 +645,7 @@ int main()
     ImGui::SFML::Init(window);
 
     const auto assets = std::filesystem::current_path().parent_path().parent_path() / "improved-journey" / "assets";
+    loadAllSprites(assets);
 
     sf::Font font;
     if (!font.loadFromFile((assets / "Roboto-Font" / "Roboto-Light.ttf").string()))
