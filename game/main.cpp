@@ -184,6 +184,21 @@ struct LogicEntity
         return maximumHealth;
     }
 
+    void BumpIntoWall()
+    {
+        switch (Activity)
+        {
+        case ObjectActivity::Walking:
+            Activity = ObjectActivity::Standing;
+            break;
+
+        case ObjectActivity::Standing:
+        case ObjectActivity::Dead:
+        case ObjectActivity::Attacking:
+            break;
+        }
+    }
+
     std::unique_ptr<ObjectBehavior> Behavior;
     sf::Vector2f Position;
     sf::Vector2f Direction;
@@ -511,14 +526,16 @@ constexpr int TileSize = 32;
     return true;
 }
 
-[[nodiscard]] sf::Vector2f MoveWithCollisionDetection(const sf::Vector2f &from, const sf::Vector2f &to,
-                                                      const World &world)
+void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &to, const World &world)
 {
     if (IsInsideOfWorld(to, world))
     {
-        return to;
+        entity.Position = to;
     }
-    return from;
+    else
+    {
+        entity.BumpIntoWall();
+    }
 }
 
 void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime)
@@ -539,8 +556,7 @@ void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Ti
     case ObjectActivity::Walking: {
         const float velocity = 80;
         const auto change = object.Logic.Direction * deltaTime.asSeconds() * velocity;
-        object.Logic.Position =
-            MoveWithCollisionDetection(object.Logic.Position, object.Logic.Position + change, world);
+        MoveWithCollisionDetection(object.Logic, object.Logic.Position + change, world);
         break;
     }
     }
