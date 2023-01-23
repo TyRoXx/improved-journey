@@ -518,8 +518,9 @@ struct Camera
 };
 
 constexpr int TileSize = 32;
+const sf::Vector2f DefaultEntityDimensions(8, 8);
 
-[[nodiscard]] bool IsWalkable(const sf::Vector2f &point, const World &world)
+[[nodiscard]] bool IsWalkablePoint(const sf::Vector2f &point, const World &world)
 {
     const sf::Vector2<ptrdiff_t> tileIndex(static_cast<ptrdiff_t>(std::floor(point.x / static_cast<float>(TileSize))),
                                            static_cast<ptrdiff_t>(std::floor(point.y / static_cast<float>(TileSize))));
@@ -536,9 +537,26 @@ constexpr int TileSize = 32;
     return (tile != NoTile);
 }
 
+[[nodiscard]] bool IsWalkable(const sf::Vector2f &point, const sf::Vector2f &entityDimensions, const World &world)
+{
+    const sf::Vector2f halfDimensions = entityDimensions / 2.0f;
+    // current heuristic: check the four corners of the bounding box around the entity in addition to the center
+    return
+        // top left
+        IsWalkablePoint(point - halfDimensions, world) &&
+        // bottom right
+        IsWalkablePoint(point + halfDimensions, world) &&
+        // bottom left
+        IsWalkablePoint(point + sf::Vector2f(-halfDimensions.x, halfDimensions.y), world) &&
+        // top right
+        IsWalkablePoint(point + sf::Vector2f(halfDimensions.x, -halfDimensions.y), world) &&
+        // center
+        IsWalkablePoint(point, world);
+}
+
 void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &to, const World &world)
 {
-    if (IsWalkable(to, world))
+    if (IsWalkable(to, DefaultEntityDimensions, world))
     {
         entity.Position = to;
     }
@@ -765,7 +783,7 @@ int main()
             {
                 enemy.Logic.Position.x = static_cast<float>(std::rand() % 1200);
                 enemy.Logic.Position.y = static_cast<float>(std::rand() % 800);
-            } while (!IsWalkable(enemy.Logic.Position, world));
+            } while (!IsWalkable(enemy.Logic.Position, DefaultEntityDimensions, world));
             enemy.Logic.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
             enemy.Logic.Behavior = std::make_unique<Bot>();
         }
