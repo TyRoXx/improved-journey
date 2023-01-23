@@ -250,6 +250,8 @@ struct FloatingText final
     }
 };
 
+constexpr int NoTile = 3;
+
 struct Map final
 {
     std::vector<int> Tiles;
@@ -259,6 +261,11 @@ struct Map final
     {
         return Tiles.size() / Width;
     }
+
+    int GetTileAt(const size_t x, const size_t y) const
+    {
+        return Tiles[(y * Width) + x];
+    }
 };
 
 [[nodiscard]] Map GenerateRandomMap()
@@ -267,7 +274,7 @@ struct Map final
     result.Width = 30;
     for (size_t i = 0; i < (30 * result.Width); ++i)
     {
-        result.Tiles.push_back(std::rand() % 3);
+        result.Tiles.push_back(std::rand() % 4);
     }
     return result;
 }
@@ -512,23 +519,26 @@ struct Camera
 
 constexpr int TileSize = 32;
 
-[[nodiscard]] bool IsInsideOfWorld(const sf::Vector2f &point, const World &world)
+[[nodiscard]] bool IsWalkable(const sf::Vector2f &point, const World &world)
 {
-    const sf::Vector2f tile = point / static_cast<float>(TileSize);
-    if ((tile.x < 0) || (tile.y < 0))
+    const sf::Vector2<ptrdiff_t> tileIndex(static_cast<ptrdiff_t>(point.x / static_cast<float>(TileSize)),
+                                           static_cast<ptrdiff_t>(point.y / static_cast<float>(TileSize)));
+    if ((tileIndex.x < 0) || (tileIndex.y < 0))
     {
         return false;
     }
-    if ((tile.x >= static_cast<float>(world.map.Width)) || (tile.y >= static_cast<float>(world.map.GetHeight())))
+    if ((tileIndex.x >= static_cast<ptrdiff_t>(world.map.Width)) ||
+        (tileIndex.y >= static_cast<ptrdiff_t>(world.map.GetHeight())))
     {
         return false;
     }
-    return true;
+    const int tile = world.map.GetTileAt(static_cast<size_t>(tileIndex.x), static_cast<size_t>(tileIndex.y));
+    return (tile != NoTile);
 }
 
 void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &to, const World &world)
 {
-    if (IsInsideOfWorld(to, world))
+    if (IsWalkable(to, world))
     {
         entity.Position = to;
     }
@@ -744,15 +754,18 @@ int main()
     World world(font, map);
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
     {
-        for (size_t k = 0; k < 5; ++k)
+        for (size_t k = 0; k < 10; ++k)
         {
             Object &enemy = world.enemies.emplace_back();
             enemy.Visuals.Sprite.setTexture(enemyTextures[i]);
             enemy.Visuals.Cutter = enemyTextureCutters[i];
             enemy.Visuals.SpriteSize = enemySizes[i];
             enemy.Visuals.VerticalOffset = enemyVerticalOffset[i];
-            enemy.Logic.Position.x = static_cast<float>(std::rand() % 1200);
-            enemy.Logic.Position.y = static_cast<float>(std::rand() % 800);
+            do
+            {
+                enemy.Logic.Position.x = static_cast<float>(std::rand() % 1200);
+                enemy.Logic.Position.y = static_cast<float>(std::rand() % 800);
+            } while (!IsWalkable(enemy.Logic.Position, world));
             enemy.Logic.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
             enemy.Logic.Behavior = std::make_unique<Bot>();
         }
@@ -857,8 +870,13 @@ int main()
         {
             for (size_t x = 0; x < map.Width; ++x)
             {
+                const int tile = map.GetTileAt(x, y);
+                if (tile == NoTile)
+                {
+                    continue;
+                }
                 sf::Sprite grass(grassTexture);
-                grass.setTextureRect(sf::IntRect(map.Tiles[(y * map.Width) + x] * TileSize, 160, TileSize, TileSize));
+                grass.setTextureRect(sf::IntRect(tile * TileSize, 160, TileSize, TileSize));
                 grass.setPosition(sf::Vector2f(static_cast<float>(x) * TileSize, static_cast<float>(y) * TileSize));
                 camera.draw(window, grass);
             }
