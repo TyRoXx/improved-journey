@@ -72,6 +72,22 @@ enum class ObjectAnimation
     Dead
 };
 
+[[nodiscard]] const char *GetObjectAnimationName(const ObjectAnimation animation)
+{
+    switch (animation)
+    {
+    case ObjectAnimation::Standing:
+        return "Standing";
+    case ObjectAnimation::Walking:
+        return "Walking";
+    case ObjectAnimation::Attacking:
+        return "Attacking";
+    case ObjectAnimation::Dead:
+        return "Dead";
+    }
+    IJ_UNREACHABLE();
+}
+
 using TextureCutter = sf::IntRect(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
                                   const sf::Vector2i &size);
 
@@ -184,24 +200,10 @@ struct LogicEntity
         return maximumHealth;
     }
 
-    void BumpIntoWall()
-    {
-        switch (Activity)
-        {
-        case ObjectActivity::Walking:
-            Activity = ObjectActivity::Standing;
-            break;
-
-        case ObjectActivity::Standing:
-        case ObjectActivity::Dead:
-        case ObjectActivity::Attacking:
-            break;
-        }
-    }
-
     std::unique_ptr<ObjectBehavior> Behavior;
     sf::Vector2f Position;
     sf::Vector2f Direction;
+    bool HasBumpedIntoWall = false;
 
 private:
     Health currentHealth = 100;
@@ -400,7 +402,7 @@ struct Bot final : ObjectBehavior
                 _target = &player;
                 break;
             }
-            if (std::rand() % 2000 < 10)
+            if (object.HasBumpedIntoWall || (std::rand() % 2000 < 10))
             {
                 switch (object.GetActivity())
                 {
@@ -460,9 +462,10 @@ struct Bot final : ObjectBehavior
             }
             break;
         }
+        // acknowledged
+        object.HasBumpedIntoWall = false;
     }
 
-private:
     enum class State
     {
         MovingAround,
@@ -470,6 +473,31 @@ private:
         Attacking
     };
 
+    [[nodiscard]] State GetState() const
+    {
+        return _state;
+    }
+
+    [[nodiscard]] static const char *GetStateName(const State state)
+    {
+        switch (state)
+        {
+        case State::MovingAround:
+            return "MovingAround";
+        case State::Chasing:
+            return "Chasing";
+        case State::Attacking:
+            return "Attacking";
+        }
+        IJ_UNREACHABLE();
+    }
+
+    [[nodiscard]] LogicEntity *GetTarget() const
+    {
+        return _target;
+    }
+
+private:
     State _state = State::MovingAround;
     LogicEntity *_target = nullptr;
     sf::Int32 _sinceLastAttack = 0;
@@ -554,15 +582,29 @@ const sf::Vector2f DefaultEntityDimensions(8, 8);
         IsWalkablePoint(point, world);
 }
 
-void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &to, const World &world)
+void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &desiredChange, const World &world)
 {
-    if (IsWalkable(to, DefaultEntityDimensions, world))
+    const sf::Vector2f desiredDestination = (entity.Position + desiredChange);
+    if (IsWalkable(desiredDestination, DefaultEntityDimensions, world))
     {
-        entity.Position = to;
+        entity.Position = desiredDestination;
+        entity.HasBumpedIntoWall = false;
+    }
+    else if (const sf::Vector2f horizontalAlternative = (entity.Position + sf::Vector2f(desiredChange.x, 0));
+             IsWalkable(horizontalAlternative, DefaultEntityDimensions, world))
+    {
+        entity.Position = horizontalAlternative;
+        entity.HasBumpedIntoWall = true;
+    }
+    else if (const sf::Vector2f verticalAlternative = (entity.Position + sf::Vector2f(0, desiredChange.y));
+             IsWalkable(verticalAlternative, DefaultEntityDimensions, world))
+    {
+        entity.Position = verticalAlternative;
+        entity.HasBumpedIntoWall = true;
     }
     else
     {
-        entity.BumpIntoWall();
+        entity.HasBumpedIntoWall = true;
     }
 }
 
@@ -584,7 +626,7 @@ void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Ti
     case ObjectActivity::Walking: {
         const float velocity = 80;
         const auto change = object.Logic.Direction * deltaTime.asSeconds() * velocity;
-        MoveWithCollisionDetection(object.Logic, object.Logic.Position + change, world);
+        MoveWithCollisionDetection(object.Logic, change, world);
         break;
     }
     }
@@ -878,6 +920,20 @@ int main()
                 ImGui::SameLine();
                 ImGui::ProgressBar(static_cast<float>(selectedEnemy->Logic.GetCurrentHealth()) /
                                    static_cast<float>(selectedEnemy->Logic.GetMaximumHealth()));
+                ImGui::BeginDisabled();
+                ImGui::Checkbox("Bumped", &selectedEnemy->Logic.HasBumpedIntoWall);
+                ImGui::EndDisabled();
+                ImGui::LabelText("Animation", "%s", GetObjectAnimationName(selectedEnemy->Visuals.Animation));
+                ImGui::LabelText(
+                    "Direction", "%f %f", selectedEnemy->Logic.Direction.x, selectedEnemy->Logic.Direction.y);
+                if (const Bot *const bot = dynamic_cast<const Bot *>(selectedEnemy->Logic.Behavior.get()))
+                {
+                    ImGui::LabelText("State", "%s", Bot::GetStateName(bot->GetState()));
+                    ImGui::BeginDisabled();
+                    bool hasTarget = (bot->GetTarget() != nullptr);
+                    ImGui::Checkbox("Has target", &hasTarget);
+                    ImGui::EndDisabled();
+                }
             }
             ImGui::End();
         }
