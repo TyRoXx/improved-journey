@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <fmt/format.h>
 #include <iostream>
+#include <random>
 
 #define IJ_UNREACHABLE() __assume(false)
 
@@ -222,19 +223,46 @@ struct Object final
     LogicEntity Logic;
 };
 
+struct RandomNumberGenerator
+{
+    virtual ~RandomNumberGenerator()
+    {
+    }
+
+    virtual sf::Int32 GenerateInt32(sf::Int32 minimum, sf::Int32 maximum) = 0;
+};
+
+struct StandardRandomNumberGenerator final : RandomNumberGenerator
+{
+    std::random_device seedGenerator;
+    std::default_random_engine engine;
+
+    StandardRandomNumberGenerator()
+        : engine(seedGenerator())
+    {
+    }
+
+    sf::Int32 GenerateInt32(sf::Int32 minimum, sf::Int32 maximum) override
+    {
+        std::uniform_int_distribution<sf::Int32> distribution(minimum, maximum);
+        return distribution(engine);
+    }
+};
+
 struct FloatingText final
 {
     std::unique_ptr<sf::Text> Text;
     sf::Time Age;
     sf::Time MaxAge;
 
-    explicit FloatingText(const sf::String &text, const sf::Vector2f &position, const sf::Font &font)
+    explicit FloatingText(const sf::String &text, const sf::Vector2f &position, const sf::Font &font,
+                          RandomNumberGenerator &random)
         : Text(std::make_unique<sf::Text>(text, font, 14u))
         , Age()
-        , MaxAge(sf::milliseconds(5000 + (std::rand() % 5000)))
+        , MaxAge(sf::milliseconds(random.GenerateInt32(5000, 10'000)))
     {
-        Text->setPosition(position + sf::Vector2f(static_cast<float>(20 - (std::rand() % 40)),
-                                                  static_cast<float>(-100 + (std::rand() % 40))));
+        Text->setPosition(position + sf::Vector2f(static_cast<float>(20 - random.GenerateInt32(0, 39)),
+                                                  static_cast<float>(-100 + random.GenerateInt32(0, 39))));
         Text->setFillColor(sf::Color::Red);
         Text->setOutlineColor(sf::Color::Black);
         Text->setOutlineThickness(1);
@@ -270,13 +298,13 @@ struct Map final
     }
 };
 
-[[nodiscard]] Map GenerateRandomMap()
+[[nodiscard]] Map GenerateRandomMap(RandomNumberGenerator &random)
 {
     Map result;
     result.Width = 30;
     for (size_t i = 0; i < (30 * result.Width); ++i)
     {
-        result.Tiles.push_back(std::rand() % 4);
+        result.Tiles.push_back(random.GenerateInt32(0, 3));
     }
     return result;
 }
@@ -310,13 +338,13 @@ struct World final
     return nullptr;
 }
 
-void InflictDamage(LogicEntity &damaged, World &world, const Health damage)
+void InflictDamage(LogicEntity &damaged, World &world, const Health damage, RandomNumberGenerator &random)
 {
     if (!damaged.inflictDamage(damage))
     {
         return;
     }
-    world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font);
+    world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font, random);
 }
 
 struct ObjectBehavior
@@ -325,7 +353,8 @@ struct ObjectBehavior
     {
     }
 
-    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime) = 0;
+    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                        RandomNumberGenerator &random) = 0;
 };
 
 struct PlayerCharacter final : ObjectBehavior
@@ -339,7 +368,8 @@ struct PlayerCharacter final : ObjectBehavior
     {
     }
 
-    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime) final
+    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                        RandomNumberGenerator &random) final
     {
         assert(&object == &player);
         (void)player;
@@ -361,7 +391,7 @@ struct PlayerCharacter final : ObjectBehavior
                 object.SetActivity(ObjectActivity::Attacking);
                 for (Object &enemy : world.enemies)
                 {
-                    InflictDamage(enemy.Logic, world, 2);
+                    InflictDamage(enemy.Logic, world, 2, random);
                 }
             }
             else
@@ -386,7 +416,8 @@ bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, con
 
 struct Bot final : ObjectBehavior
 {
-    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime) final
+    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                        RandomNumberGenerator &random) final
     {
         (void)world;
         if (isDead(object))
@@ -402,7 +433,7 @@ struct Bot final : ObjectBehavior
                 _target = &player;
                 break;
             }
-            if (object.HasBumpedIntoWall || (std::rand() % 2000 < 10))
+            if (object.HasBumpedIntoWall || (random.GenerateInt32(0, 1999) < 10))
             {
                 switch (object.GetActivity())
                 {
@@ -415,8 +446,8 @@ struct Bot final : ObjectBehavior
                     object.SetActivity(ObjectActivity::Standing);
                     break;
                 }
-                object.Direction = normalize(
-                    sf::Vector2f(static_cast<float>(std::rand() % 10 - 5), static_cast<float>(std::rand() % 10 - 5)));
+                object.Direction = normalize(sf::Vector2f(static_cast<float>(random.GenerateInt32(0, 9) - 5),
+                                                          static_cast<float>(random.GenerateInt32(0, 9) - 5)));
             }
             break;
 
@@ -458,7 +489,7 @@ struct Bot final : ObjectBehavior
             while (_sinceLastAttack >= attackDelay)
             {
                 object.SetActivity(ObjectActivity::Attacking);
-                InflictDamage(player, world, 1);
+                InflictDamage(player, world, 1, random);
                 _sinceLastAttack -= attackDelay;
             }
             if (isDead(player))
@@ -614,9 +645,10 @@ void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &desired
     }
 }
 
-void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime)
+void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                 RandomNumberGenerator &random)
 {
-    object.Logic.Behavior->update(object.Logic, player, world, deltaTime);
+    object.Logic.Behavior->update(object.Logic, player, world, deltaTime, random);
 
     switch (object.Logic.GetActivity())
     {
@@ -810,7 +842,8 @@ int main()
     player.Logic.Position = sf::Vector2f(400, 400);
     player.Logic.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed, isAttackPressed);
 
-    const Map map = GenerateRandomMap();
+    StandardRandomNumberGenerator randomNumberGenerator;
+    const Map map = GenerateRandomMap(randomNumberGenerator);
 
     World world(font, map);
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
@@ -824,10 +857,11 @@ int main()
             enemy.Visuals.VerticalOffset = enemyVerticalOffset[i];
             do
             {
-                enemy.Logic.Position.x = static_cast<float>(std::rand() % 1200);
-                enemy.Logic.Position.y = static_cast<float>(std::rand() % 800);
+                enemy.Logic.Position.x = static_cast<float>(randomNumberGenerator.GenerateInt32(0, 1199));
+                enemy.Logic.Position.y = static_cast<float>(randomNumberGenerator.GenerateInt32(0, 799));
             } while (!IsWalkable(enemy.Logic.Position, DefaultEntityDimensions, world));
-            enemy.Logic.Direction = DirectionToVector(static_cast<Direction>(std::rand() % 4));
+            enemy.Logic.Direction =
+                DirectionToVector(static_cast<Direction>(randomNumberGenerator.GenerateInt32(0, 3)));
             enemy.Logic.Behavior = std::make_unique<Bot>();
         }
     }
@@ -964,10 +998,10 @@ int main()
         while (remainingSimulationTime >= simulationTimeStep)
         {
             remainingSimulationTime -= simulationTimeStep;
-            updateLogic(player, player.Logic, world, simulationTimeStep);
+            updateLogic(player, player.Logic, world, simulationTimeStep, randomNumberGenerator);
             for (Object &enemy : world.enemies)
             {
-                updateLogic(enemy, player.Logic, world, simulationTimeStep);
+                updateLogic(enemy, player.Logic, world, simulationTimeStep, randomNumberGenerator);
             }
         }
 
@@ -988,7 +1022,6 @@ int main()
             world.FloatingTexts[i].Update(deltaTime);
             if (world.FloatingTexts[i].HasExpired())
             {
-                using std::swap;
                 if ((i + 1) >= world.FloatingTexts.size())
                 {
                     world.FloatingTexts[i] = std::move(world.FloatingTexts.back());
