@@ -1022,7 +1022,7 @@ int main()
             world.FloatingTexts[i].Update(deltaTime);
             if (world.FloatingTexts[i].HasExpired())
             {
-                if ((i + 1) >= world.FloatingTexts.size())
+                if ((i + 1) < world.FloatingTexts.size())
                 {
                     world.FloatingTexts[i] = std::move(world.FloatingTexts.back());
                 }
