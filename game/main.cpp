@@ -421,13 +421,19 @@ struct Bot final : ObjectBehavior
             break;
 
         case State::Chasing:
-            if (isWithinDistance(object.Position, _target->Position, 40))
+            assert(_target);
+            if (isDead(*_target))
+            {
+                object.SetActivity(ObjectActivity::Standing);
+                _state = State::MovingAround;
+                _target = nullptr;
+            }
+            else if (isWithinDistance(object.Position, _target->Position, 40))
             {
                 _state = State::Attacking;
                 object.SetActivity(ObjectActivity::Standing);
-                break;
             }
-            if (isWithinDistance(object.Position, _target->Position, 600))
+            else if (isWithinDistance(object.Position, _target->Position, 600))
             {
                 object.SetActivity(ObjectActivity::Walking);
                 object.Direction = normalize(_target->Position - object.Position);
