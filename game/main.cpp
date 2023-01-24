@@ -841,6 +841,7 @@ int main()
     Object *selectedEnemy = nullptr;
 
     sf::Clock deltaClock;
+    sf::Time remainingSimulationTime;
     while (window.isOpen())
     {
         sf::Event event;
@@ -962,15 +963,26 @@ int main()
             }
         }
 
+        // fix the time step to make physics and NPC behaviour independent from the frame rate
+        remainingSimulationTime += deltaTime;
+        const sf::Time simulationTimeStep = sf::milliseconds(16);
+        while (remainingSimulationTime >= simulationTimeStep)
+        {
+            remainingSimulationTime -= simulationTimeStep;
+            updateObject(player, player.Logic, world, simulationTimeStep);
+            for (Object &enemy : world.enemies)
+            {
+                updateObject(enemy, player.Logic, world, simulationTimeStep);
+            }
+        }
+
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
-        updateObject(player, player.Logic, world, deltaTime);
         camera.Center = player.Logic.Position;
         spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
 
         for (Object &enemy : world.enemies)
         {
-            updateObject(enemy, player.Logic, world, deltaTime);
             spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
         }
 
