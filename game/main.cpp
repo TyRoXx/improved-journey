@@ -727,7 +727,8 @@ void loadAllSprites(const std::filesystem::path &assets)
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
-    window.setFramerateLimit(60);
+    const unsigned frameRate = 60;
+    window.setFramerateLimit(frameRate);
     ImGui::SFML::Init(window);
 
     const auto assets = std::filesystem::current_path().parent_path().parent_path() / "improved-journey" / "assets";
@@ -959,7 +960,7 @@ int main()
 
         // fix the time step to make physics and NPC behaviour independent from the frame rate
         remainingSimulationTime += deltaTime;
-        const sf::Time simulationTimeStep = sf::milliseconds(16);
+        const sf::Time simulationTimeStep = sf::milliseconds(1000 / frameRate);
         while (remainingSimulationTime >= simulationTimeStep)
         {
             remainingSimulationTime -= simulationTimeStep;
