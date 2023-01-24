@@ -670,12 +670,6 @@ void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Ti
     visuals.Sprite.setColor(isColoredDead ? sf::Color(128, 128, 128, 255) : sf::Color::White);
 }
 
-void updateObject(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime)
-{
-    updateLogic(object, player, world, deltaTime);
-    updateVisuals(object.Logic, object.Visuals, deltaTime);
-}
-
 float bottomOfSprite(const sf::Sprite &sprite)
 {
     return (sprite.getPosition().y + static_cast<float>(sprite.getTextureRect().height));
@@ -969,20 +963,22 @@ int main()
         while (remainingSimulationTime >= simulationTimeStep)
         {
             remainingSimulationTime -= simulationTimeStep;
-            updateObject(player, player.Logic, world, simulationTimeStep);
+            updateLogic(player, player.Logic, world, simulationTimeStep);
             for (Object &enemy : world.enemies)
             {
-                updateObject(enemy, player.Logic, world, simulationTimeStep);
+                updateLogic(enemy, player.Logic, world, simulationTimeStep);
             }
         }
 
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
+        updateVisuals(player.Logic, player.Visuals, simulationTimeStep);
         camera.Center = player.Logic.Position;
         spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
 
         for (Object &enemy : world.enemies)
         {
+            updateVisuals(enemy.Logic, enemy.Visuals, simulationTimeStep);
             spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
         }
 
