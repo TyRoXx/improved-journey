@@ -1006,6 +1006,7 @@ int main()
         ImGui::LabelText("Enemies drawn", "%zu", enemiesDrawnLastFrame);
         ImGui::LabelText("Tiles in the world", "%zu", map.Tiles.size());
         ImGui::LabelText("Tiles drawn", "%zu", tilesDrawnLastFrame);
+        ImGui::LabelText("Floating texts in the world", "%zu", world.FloatingTexts.size());
         ImGui::Checkbox("Player/wall collision", &player.Logic.HasCollisionWithWalls);
         ImGui::End();
 
