@@ -14,6 +14,13 @@
 #include <iostream>
 #include <random>
 
+template <class To, class From>
+To AssertCast(const From &from)
+{
+    assert(from == static_cast<From>(static_cast<To>(from)));
+    return static_cast<To>(from);
+}
+
 #define IJ_UNREACHABLE() __assume(false)
 
 enum class Direction
@@ -106,12 +113,12 @@ sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const sf::Int32 ani
         break;
     case ObjectAnimation::Attacking:
         return sf::IntRect(size.x * (((animationTime / 200) % AttackFrames) + WalkFrames),
-                           size.y * static_cast<int>(direction), size.x, size.y);
+                           size.y * AssertCast<int>(direction), size.x, size.y);
     case ObjectAnimation::Dead:
-        return sf::IntRect(0, size.y * static_cast<int>(direction), size.x, size.y);
+        return sf::IntRect(0, size.y * AssertCast<int>(direction), size.x, size.y);
     }
     return sf::IntRect(
-        size.x * ((animationTime / 150) % WalkFrames), size.y * static_cast<int>(direction), size.x, size.y);
+        size.x * ((animationTime / 150) % WalkFrames), size.y * AssertCast<int>(direction), size.x, size.y);
 };
 
 sf::Vector2f normalize(const sf::Vector2f &source)
@@ -139,8 +146,8 @@ struct VisualEntity
 
     sf::Vector2f GetOffset() const
     {
-        return sf::Vector2f(static_cast<float>(SpriteSize.x / 2), static_cast<float>(SpriteSize.y)) -
-               sf::Vector2f(0, static_cast<float>(VerticalOffset));
+        return sf::Vector2f(AssertCast<float>(SpriteSize.x / 2), AssertCast<float>(SpriteSize.y)) -
+               sf::Vector2f(0, AssertCast<float>(VerticalOffset));
     }
 };
 
@@ -261,8 +268,8 @@ struct FloatingText final
         , Age()
         , MaxAge(sf::milliseconds(random.GenerateInt32(5000, 10'000)))
     {
-        Text->setPosition(position + sf::Vector2f(static_cast<float>(20 - random.GenerateInt32(0, 39)),
-                                                  static_cast<float>(-100 + random.GenerateInt32(0, 39))));
+        Text->setPosition(position + sf::Vector2f(AssertCast<float>(20 - random.GenerateInt32(0, 39)),
+                                                  AssertCast<float>(-100 + random.GenerateInt32(0, 39))));
         Text->setFillColor(sf::Color::Red);
         Text->setOutlineColor(sf::Color::Black);
         Text->setOutlineThickness(1);
@@ -301,8 +308,8 @@ struct Map final
 [[nodiscard]] Map GenerateRandomMap(RandomNumberGenerator &random)
 {
     Map result;
-    result.Width = 30;
-    for (size_t i = 0; i < (30 * result.Width); ++i)
+    result.Width = 50;
+    for (size_t i = 0; i < (50 * result.Width); ++i)
     {
         result.Tiles.push_back(random.GenerateInt32(0, 3));
     }
@@ -382,7 +389,7 @@ struct PlayerCharacter final : ObjectBehavior
             {
                 continue;
             }
-            direction += DirectionToVector(static_cast<Direction>(i));
+            direction += DirectionToVector(AssertCast<Direction>(i));
         }
         if (direction == sf::Vector2f())
         {
@@ -446,8 +453,8 @@ struct Bot final : ObjectBehavior
                     object.SetActivity(ObjectActivity::Standing);
                     break;
                 }
-                object.Direction = normalize(sf::Vector2f(static_cast<float>(random.GenerateInt32(0, 9) - 5),
-                                                          static_cast<float>(random.GenerateInt32(0, 9) - 5)));
+                object.Direction = normalize(sf::Vector2f(AssertCast<float>(random.GenerateInt32(0, 9) - 5),
+                                                          AssertCast<float>(random.GenerateInt32(0, 9) - 5)));
             }
             break;
 
@@ -587,18 +594,18 @@ const sf::Vector2f DefaultEntityDimensions(8, 8);
 
 [[nodiscard]] bool IsWalkablePoint(const sf::Vector2f &point, const World &world)
 {
-    const sf::Vector2<ptrdiff_t> tileIndex(static_cast<ptrdiff_t>(std::floor(point.x / static_cast<float>(TileSize))),
-                                           static_cast<ptrdiff_t>(std::floor(point.y / static_cast<float>(TileSize))));
+    const sf::Vector2<ptrdiff_t> tileIndex(
+        AssertCast<ptrdiff_t>(std::floor(point.x / TileSize)), AssertCast<ptrdiff_t>(std::floor(point.y / TileSize)));
     if ((tileIndex.x < 0) || (tileIndex.y < 0))
     {
         return false;
     }
-    if ((tileIndex.x >= static_cast<ptrdiff_t>(world.map.Width)) ||
-        (tileIndex.y >= static_cast<ptrdiff_t>(world.map.GetHeight())))
+    if ((tileIndex.x >= AssertCast<ptrdiff_t>(world.map.Width)) ||
+        (tileIndex.y >= AssertCast<ptrdiff_t>(world.map.GetHeight())))
     {
         return false;
     }
-    const int tile = world.map.GetTileAt(static_cast<size_t>(tileIndex.x), static_cast<size_t>(tileIndex.y));
+    const int tile = world.map.GetTileAt(AssertCast<size_t>(tileIndex.x), AssertCast<size_t>(tileIndex.y));
     return (tile != NoTile);
 }
 
@@ -704,7 +711,7 @@ void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Ti
 
 float bottomOfSprite(const sf::Sprite &sprite)
 {
-    return (sprite.getPosition().y + static_cast<float>(sprite.getTextureRect().height));
+    return (sprite.getPosition().y + AssertCast<float>(sprite.getTextureRect().height));
 }
 
 void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &object)
@@ -716,9 +723,9 @@ void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &objec
     constexpr sf::Int32 width = 24;
     constexpr sf::Int32 height = 4;
     const float x = object.Logic.Position.x - width / 2;
-    const float y = object.Logic.Position.y - static_cast<float>(object.Visuals.Sprite.getTextureRect().height);
-    const float greenPortion = static_cast<float>(object.Logic.GetCurrentHealth()) /
-                               static_cast<float>(object.Logic.GetMaximumHealth()) * static_cast<float>(width);
+    const float y = object.Logic.Position.y - AssertCast<float>(object.Visuals.Sprite.getTextureRect().height);
+    const float greenPortion = AssertCast<float>(object.Logic.GetCurrentHealth()) /
+                               AssertCast<float>(object.Logic.GetMaximumHealth()) * AssertCast<float>(width);
     {
         sf::RectangleShape green;
         green.setPosition(sf::Vector2f(x, y));
@@ -802,7 +809,7 @@ int main()
         case ObjectAnimation::Dead:
             return sf::IntRect(5 * size.x, 20 * size.y, size.x, size.y);
         }
-        return sf::IntRect(x, size.y * (static_cast<int>(direction) + yOffset), size.x, size.y);
+        return sf::IntRect(x, size.y * (AssertCast<int>(direction) + yOffset), size.x, size.y);
     };
 
     const auto grassFile = (assets / "LPC Base Assets" / "tiles" / "grass.png");
@@ -857,11 +864,14 @@ int main()
             enemy.Visuals.VerticalOffset = enemyVerticalOffset[i];
             do
             {
-                enemy.Logic.Position.x = static_cast<float>(randomNumberGenerator.GenerateInt32(0, 1199));
-                enemy.Logic.Position.y = static_cast<float>(randomNumberGenerator.GenerateInt32(0, 799));
+                enemy.Logic.Position.x = AssertCast<float>(
+                    TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(map.Width - 1)) +
+                    (TileSize / 2));
+                enemy.Logic.Position.y = AssertCast<float>(
+                    TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(map.GetHeight() - 1)) +
+                    (TileSize / 2));
             } while (!IsWalkable(enemy.Logic.Position, DefaultEntityDimensions, world));
-            enemy.Logic.Direction =
-                DirectionToVector(static_cast<Direction>(randomNumberGenerator.GenerateInt32(0, 3)));
+            enemy.Logic.Direction = DirectionToVector(AssertCast<Direction>(randomNumberGenerator.GenerateInt32(0, 3)));
             enemy.Logic.Behavior = std::make_unique<Bot>();
         }
     }
@@ -887,16 +897,16 @@ int main()
                 switch (event.key.code)
                 {
                 case sf::Keyboard::W:
-                    isDirectionKeyPressed[static_cast<size_t>(Direction::Up)] = true;
+                    isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = true;
                     break;
                 case sf::Keyboard::A:
-                    isDirectionKeyPressed[static_cast<size_t>(Direction::Left)] = true;
+                    isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = true;
                     break;
                 case sf::Keyboard::S:
-                    isDirectionKeyPressed[static_cast<size_t>(Direction::Down)] = true;
+                    isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = true;
                     break;
                 case sf::Keyboard::D:
-                    isDirectionKeyPressed[static_cast<size_t>(Direction::Right)] = true;
+                    isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = true;
                     break;
                 case sf::Keyboard::Space:
                     isAttackPressed = true;
@@ -910,16 +920,16 @@ int main()
                 switch (event.key.code)
                 {
                 case sf::Keyboard::W:
-                    isDirectionKeyPressed[static_cast<size_t>(Direction::Up)] = false;
+                    isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = false;
                     break;
                 case sf::Keyboard::A:
-                    isDirectionKeyPressed[static_cast<size_t>(Direction::Left)] = false;
+                    isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = false;
                     break;
                 case sf::Keyboard::S:
-                    isDirectionKeyPressed[static_cast<size_t>(Direction::Down)] = false;
+                    isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = false;
                     break;
                 case sf::Keyboard::D:
-                    isDirectionKeyPressed[static_cast<size_t>(Direction::Right)] = false;
+                    isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = false;
                     break;
                 case sf::Keyboard::Space:
                     isAttackPressed = false;
@@ -943,8 +953,8 @@ int main()
         {
             ImGui::Text("Health");
             ImGui::SameLine();
-            ImGui::ProgressBar(static_cast<float>(player.Logic.GetCurrentHealth()) /
-                               static_cast<float>(player.Logic.GetMaximumHealth()));
+            ImGui::ProgressBar(AssertCast<float>(player.Logic.GetCurrentHealth()) /
+                               AssertCast<float>(player.Logic.GetMaximumHealth()));
         }
         ImGui::End();
 
@@ -954,8 +964,8 @@ int main()
             {
                 ImGui::Text("Health");
                 ImGui::SameLine();
-                ImGui::ProgressBar(static_cast<float>(selectedEnemy->Logic.GetCurrentHealth()) /
-                                   static_cast<float>(selectedEnemy->Logic.GetMaximumHealth()));
+                ImGui::ProgressBar(AssertCast<float>(selectedEnemy->Logic.GetCurrentHealth()) /
+                                   AssertCast<float>(selectedEnemy->Logic.GetMaximumHealth()));
                 ImGui::BeginDisabled();
                 ImGui::Checkbox("Bumped", &selectedEnemy->Logic.HasBumpedIntoWall);
                 ImGui::EndDisabled();
@@ -987,7 +997,7 @@ int main()
                 }
                 sf::Sprite grass(grassTexture);
                 grass.setTextureRect(sf::IntRect(tile * TileSize, 160, TileSize, TileSize));
-                grass.setPosition(sf::Vector2f(static_cast<float>(x) * TileSize, static_cast<float>(y) * TileSize));
+                grass.setPosition(sf::Vector2f(AssertCast<float>(x) * TileSize, AssertCast<float>(y) * TileSize));
                 camera.draw(window, grass);
             }
         }
