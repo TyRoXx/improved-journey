@@ -965,6 +965,20 @@ int main()
         }
 
         const sf::Time deltaTime = deltaClock.restart();
+
+        // fix the time step to make physics and NPC behaviour independent from the frame rate
+        remainingSimulationTime += deltaTime;
+        const sf::Time simulationTimeStep = sf::milliseconds(1000 / frameRate);
+        while (remainingSimulationTime >= simulationTimeStep)
+        {
+            remainingSimulationTime -= simulationTimeStep;
+            updateLogic(player, player.Logic, world, simulationTimeStep, randomNumberGenerator);
+            for (Object &enemy : world.enemies)
+            {
+                updateLogic(enemy, player.Logic, world, simulationTimeStep, randomNumberGenerator);
+            }
+        }
+
         ImGui::SFML::Update(window, deltaTime);
         ImGui::Begin("Character");
         {
@@ -1012,6 +1026,8 @@ int main()
 
         window.clear();
 
+        camera.Center = player.Logic.Position;
+
         const sf::Vector2i topLeft =
             findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(0, 0)));
         const sf::Vector2i bottomRight =
@@ -1041,23 +1057,9 @@ int main()
             }
         }
 
-        // fix the time step to make physics and NPC behaviour independent from the frame rate
-        remainingSimulationTime += deltaTime;
-        const sf::Time simulationTimeStep = sf::milliseconds(1000 / frameRate);
-        while (remainingSimulationTime >= simulationTimeStep)
-        {
-            remainingSimulationTime -= simulationTimeStep;
-            updateLogic(player, player.Logic, world, simulationTimeStep, randomNumberGenerator);
-            for (Object &enemy : world.enemies)
-            {
-                updateLogic(enemy, player.Logic, world, simulationTimeStep, randomNumberGenerator);
-            }
-        }
-
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
         updateVisuals(player.Logic, player.Visuals, simulationTimeStep);
-        camera.Center = player.Logic.Position;
         spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
 
         enemiesDrawnLastFrame = 0;
