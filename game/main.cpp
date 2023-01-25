@@ -308,8 +308,8 @@ struct Map final
 [[nodiscard]] Map GenerateRandomMap(RandomNumberGenerator &random)
 {
     Map result;
-    result.Width = 50;
-    for (size_t i = 0; i < (50 * result.Width); ++i)
+    result.Width = 500;
+    for (size_t i = 0; i < (500 * result.Width); ++i)
     {
         result.Tiles.push_back(random.GenerateInt32(0, 3));
     }
@@ -763,6 +763,17 @@ void loadAllSprites(const std::filesystem::path &assets)
     }
 }
 
+template <class Integer>
+Integer RoundDown(const float value)
+{
+    return AssertCast<Integer>(std::floor(value));
+}
+
+sf::Vector2i findTileByCoordinates(const sf::Vector2f &position)
+{
+    return sf::Vector2i(RoundDown<sf::Int32>(position.x / TileSize), RoundDown<sf::Int32>(position.y / TileSize));
+}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
@@ -853,7 +864,7 @@ int main()
     const Map map = GenerateRandomMap(randomNumberGenerator);
 
     const size_t numberOfTiles = map.Tiles.size();
-    const float enemiesPerTile = 0.04f;
+    const float enemiesPerTile = 0.004f;
     const size_t numberOfEnemies = static_cast<size_t>(AssertCast<float>(numberOfTiles) * enemiesPerTile);
     World world(font, map);
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
@@ -881,6 +892,8 @@ int main()
 
     Camera camera{player.Logic.Position};
     Object *selectedEnemy = nullptr;
+    size_t tilesDrawnLastFrame = 0;
+    size_t enemiesDrawnLastFrame = 0;
 
     sf::Clock deltaClock;
     sf::Time remainingSimulationTime;
@@ -987,11 +1000,30 @@ int main()
             ImGui::End();
         }
 
+        ImGui::Begin("Debug");
+        ImGui::LabelText("Enemies in the world", "%zu", world.enemies.size());
+        ImGui::LabelText("Enemies drawn", "%zu", enemiesDrawnLastFrame);
+        ImGui::LabelText("Tiles in the world", "%zu", map.Tiles.size());
+        ImGui::LabelText("Tiles drawn", "%zu", tilesDrawnLastFrame);
+        ImGui::End();
+
         window.clear();
 
-        for (size_t y = 0, height = (map.Tiles.size() / map.Width); y < height; ++y)
+        const sf::Vector2i topLeft =
+            findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(0, 0)));
+        const sf::Vector2i bottomRight =
+            findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(window.getSize())));
+
+        tilesDrawnLastFrame = 0;
+        for (size_t y = AssertCast<size_t>((std::max)(0, topLeft.y)),
+                    yStop = AssertCast<size_t>(
+                        (std::min<ptrdiff_t>)(bottomRight.y, AssertCast<ptrdiff_t>(map.GetHeight() - 1)));
+             y <= yStop; ++y)
         {
-            for (size_t x = 0; x < map.Width; ++x)
+            for (size_t x = AssertCast<size_t>((std::max)(0, topLeft.x)),
+                        xStop = AssertCast<size_t>(
+                            (std::min<ptrdiff_t>)(bottomRight.x, AssertCast<ptrdiff_t>(map.Width - 1)));
+                 x <= xStop; ++x)
             {
                 const int tile = map.GetTileAt(x, y);
                 if (tile == NoTile)
@@ -1002,6 +1034,7 @@ int main()
                 grass.setTextureRect(sf::IntRect(tile * TileSize, 160, TileSize, TileSize));
                 grass.setPosition(sf::Vector2f(AssertCast<float>(x) * TileSize, AssertCast<float>(y) * TileSize));
                 camera.draw(window, grass);
+                ++tilesDrawnLastFrame;
             }
         }
 
@@ -1024,10 +1057,12 @@ int main()
         camera.Center = player.Logic.Position;
         spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
 
+        enemiesDrawnLastFrame = 0;
         for (Object &enemy : world.enemies)
         {
             updateVisuals(enemy.Logic, enemy.Visuals, simulationTimeStep);
             spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
+            ++enemiesDrawnLastFrame;
         }
 
         for (size_t i = 0; i < world.FloatingTexts.size();)
