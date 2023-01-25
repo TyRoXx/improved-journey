@@ -356,7 +356,7 @@ struct World final
 template <class T>
 void EraseRandomElementUnstable(std::vector<T> &container, RandomNumberGenerator &random)
 {
-    if (container.size() <= 1)
+    if (container.empty())
     {
         return;
     }
