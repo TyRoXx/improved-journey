@@ -238,6 +238,7 @@ struct RandomNumberGenerator
     }
 
     virtual sf::Int32 GenerateInt32(sf::Int32 minimum, sf::Int32 maximum) = 0;
+    virtual size_t GenerateSize(size_t minimum, size_t maximum) = 0;
 };
 
 struct StandardRandomNumberGenerator final : RandomNumberGenerator
@@ -253,6 +254,12 @@ struct StandardRandomNumberGenerator final : RandomNumberGenerator
     sf::Int32 GenerateInt32(sf::Int32 minimum, sf::Int32 maximum) override
     {
         std::uniform_int_distribution<sf::Int32> distribution(minimum, maximum);
+        return distribution(engine);
+    }
+
+    size_t GenerateSize(size_t minimum, size_t maximum) override
+    {
+        std::uniform_int_distribution<size_t> distribution(minimum, maximum);
         return distribution(engine);
     }
 };
@@ -346,11 +353,28 @@ struct World final
     return nullptr;
 }
 
+template <class T>
+void EraseRandomElementUnstable(std::vector<T> &container, RandomNumberGenerator &random)
+{
+    if (container.size() <= 1)
+    {
+        return;
+    }
+    const size_t erased = random.GenerateSize(0, container.size() - 1);
+    container[erased] = std::move(container.back());
+    container.pop_back();
+}
+
 void InflictDamage(LogicEntity &damaged, World &world, const Health damage, RandomNumberGenerator &random)
 {
     if (!damaged.inflictDamage(damage))
     {
         return;
+    }
+    constexpr size_t floatingTextLimit = 1000;
+    while (world.FloatingTexts.size() >= floatingTextLimit)
+    {
+        EraseRandomElementUnstable(world.FloatingTexts, random);
     }
     world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font, random);
 }
