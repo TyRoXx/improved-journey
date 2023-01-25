@@ -211,6 +211,7 @@ struct LogicEntity
     std::unique_ptr<ObjectBehavior> Behavior;
     sf::Vector2f Position;
     sf::Vector2f Direction;
+    bool HasCollisionWithWalls = true;
     bool HasBumpedIntoWall = false;
 
 private:
@@ -629,7 +630,7 @@ const sf::Vector2f DefaultEntityDimensions(8, 8);
 void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &desiredChange, const World &world)
 {
     const sf::Vector2f desiredDestination = (entity.Position + desiredChange);
-    if (IsWalkable(desiredDestination, DefaultEntityDimensions, world))
+    if (!entity.HasCollisionWithWalls || IsWalkable(desiredDestination, DefaultEntityDimensions, world))
     {
         entity.Position = desiredDestination;
         entity.HasBumpedIntoWall = false;
@@ -1005,6 +1006,7 @@ int main()
         ImGui::LabelText("Enemies drawn", "%zu", enemiesDrawnLastFrame);
         ImGui::LabelText("Tiles in the world", "%zu", map.Tiles.size());
         ImGui::LabelText("Tiles drawn", "%zu", tilesDrawnLastFrame);
+        ImGui::Checkbox("Player/wall collision", &player.Logic.HasCollisionWithWalls);
         ImGui::End();
 
         window.clear();
