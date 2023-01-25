@@ -852,10 +852,13 @@ int main()
     StandardRandomNumberGenerator randomNumberGenerator;
     const Map map = GenerateRandomMap(randomNumberGenerator);
 
+    const size_t numberOfTiles = map.Tiles.size();
+    const float enemiesPerTile = 0.04f;
+    const size_t numberOfEnemies = static_cast<size_t>(AssertCast<float>(numberOfTiles) * enemiesPerTile);
     World world(font, map);
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
     {
-        for (size_t k = 0; k < 10; ++k)
+        for (size_t k = 0; k < (numberOfEnemies / enemyFileNames.size()); ++k)
         {
             Object &enemy = world.enemies.emplace_back();
             enemy.Visuals.Sprite.setTexture(enemyTextures[i]);
