@@ -608,9 +608,17 @@ struct Camera
         window.draw(moved);
     }
 
-    sf::Vector2f getWorldFromScreenCoordinates(const sf::RenderWindow &window, const sf::Vector2i &point)
+    sf::Vector2f getWorldFromScreenCoordinates(const sf::RenderWindow &window, const sf::Vector2i &point) const
     {
         return (sf::Vector2f(window.getSize()) * -0.5f) + Center + sf::Vector2f(point);
+    }
+
+    bool canSee(const sf::RenderWindow &window, const VisualEntity &entity) const
+    {
+        const sf::Rect<float> cameraArea(
+            getWorldFromScreenCoordinates(window, sf::Vector2i(0, 0)), sf::Vector2f(window.getSize()));
+        const sf::Rect<float> entityArea(entity.Sprite.getPosition(), sf::Vector2f(entity.SpriteSize));
+        return cameraArea.intersects(entityArea);
     }
 };
 
@@ -889,7 +897,7 @@ int main()
     const Map map = GenerateRandomMap(randomNumberGenerator);
 
     const size_t numberOfTiles = map.Tiles.size();
-    const float enemiesPerTile = 0.004f;
+    const float enemiesPerTile = 0.02f;
     const size_t numberOfEnemies = static_cast<size_t>(AssertCast<float>(numberOfTiles) * enemiesPerTile);
     World world(font, map);
     for (size_t i = 0; i < enemyFileNames.size(); ++i)
@@ -1081,6 +1089,7 @@ int main()
             }
         }
 
+        std::vector<const Object *> visibleEnemies;
         std::vector<const sf::Sprite *> spritesToDrawInZOrder;
 
         updateVisuals(player.Logic, player.Visuals, simulationTimeStep);
@@ -1090,8 +1099,12 @@ int main()
         for (Object &enemy : world.enemies)
         {
             updateVisuals(enemy.Logic, enemy.Visuals, simulationTimeStep);
-            spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
-            ++enemiesDrawnLastFrame;
+            if (camera.canSee(window, enemy.Visuals))
+            {
+                visibleEnemies.push_back(&enemy);
+                spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
+                ++enemiesDrawnLastFrame;
+            }
         }
 
         for (size_t i = 0; i < world.FloatingTexts.size();)
@@ -1126,9 +1139,9 @@ int main()
         }
 
         drawHealthBar(window, camera, player);
-        for (const Object &enemy : world.enemies)
+        for (const Object *const enemy : visibleEnemies)
         {
-            drawHealthBar(window, camera, enemy);
+            drawHealthBar(window, camera, *enemy);
         }
 
         {
@@ -1138,21 +1151,21 @@ int main()
             circle.setPosition(player.Logic.Position);
             camera.draw(window, circle);
         }
-        for (const Object &enemy : world.enemies)
+        for (const Object *const enemy : visibleEnemies)
         {
             {
                 sf::CircleShape circle(1);
                 circle.setOutlineColor(sf::Color(255, 0, 0));
                 circle.setFillColor(sf::Color(255, 0, 0));
-                circle.setPosition(enemy.Logic.Position);
+                circle.setPosition(enemy->Logic.Position);
                 camera.draw(window, circle);
             }
 
-            if (&enemy == selectedEnemy)
+            if (enemy == selectedEnemy)
             {
                 sf::RectangleShape rect;
-                rect.setPosition(enemy.Logic.Position - enemy.Visuals.GetOffset());
-                rect.setSize(sf::Vector2f(enemy.Visuals.SpriteSize));
+                rect.setPosition(enemy->Logic.Position - enemy->Visuals.GetOffset());
+                rect.setSize(sf::Vector2f(enemy->Visuals.SpriteSize));
                 rect.setFillColor(sf::Color::Transparent);
                 rect.setOutlineColor(sf::Color::White);
                 rect.setOutlineThickness(1);
