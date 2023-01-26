@@ -1,0 +1,6 @@
+file(GLOB sources *.h *.cpp)
+add_library(ij_lib ${sources})
+target_link_libraries(ij_lib PRIVATE sfml-graphics)
+if(FO_CLANG_FORMAT)
+	add_dependencies(ij_lib clang-format)
+endif()

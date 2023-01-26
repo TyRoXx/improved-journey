@@ -1,6 +1,7 @@
 file(GLOB sources *.h *.cpp)
 add_executable(tests ${sources})
-target_link_libraries(tests Catch2::Catch2 Catch2::Catch2WithMain)
+target_link_libraries(tests PRIVATE ij_lib)
+target_link_libraries(tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 if(FO_CLANG_FORMAT)
 	add_dependencies(tests clang-format)
 endif()

@@ -1,19 +1,10 @@
 #include <catch2/catch_all.hpp>
+#include <ij/direction.h>
 
-static int Factorial(int number)
+TEST_CASE("Directions and vectors round trip", "[direction]")
 {
-    return number <= 1 ? 1 : Factorial(number - 1) * number; // pass
-}
-
-TEST_CASE("Factorial of 0 is 1 (fail)", "[single-file]")
-{
-    REQUIRE(Factorial(0) == 1);
-}
-
-TEST_CASE("Factorials of 1 and higher are computed (pass)", "[single-file]")
-{
-    REQUIRE(Factorial(1) == 1);
-    REQUIRE(Factorial(2) == 2);
-    REQUIRE(Factorial(3) == 6);
-    REQUIRE(Factorial(10) == 3628800);
+    CHECK(ij::Direction::Up == ij::DirectionFromVector(ij::DirectionToVector(ij::Direction::Up)));
+    CHECK(ij::Direction::Left == ij::DirectionFromVector(ij::DirectionToVector(ij::Direction::Left)));
+    CHECK(ij::Direction::Down == ij::DirectionFromVector(ij::DirectionToVector(ij::Direction::Down)));
+    CHECK(ij::Direction::Right == ij::DirectionFromVector(ij::DirectionToVector(ij::Direction::Right)));
 }

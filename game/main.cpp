@@ -11,804 +11,759 @@
 #include <array>
 #include <filesystem>
 #include <fmt/format.h>
+#include <ij/direction.h>
+#include <ij/unreachable.h>
 #include <iostream>
 #include <random>
 
-template <class To, class From>
-To AssertCast(const From &from)
+namespace ij
 {
-    assert(from == static_cast<From>(static_cast<To>(from)));
-    return static_cast<To>(from);
-}
-
-#define IJ_UNREACHABLE() __assume(false)
-
-enum class Direction
-{
-    Up,
-    Left,
-    Down,
-    Right
-};
-
-sf::Vector2f DirectionToVector(Direction direction)
-{
-    switch (direction)
+    template <class To, class From>
+    To AssertCast(const From &from)
     {
-    case Direction::Up:
-        return sf::Vector2f(0, -1);
-    case Direction::Left:
-        return sf::Vector2f(-1, 0);
-    case Direction::Down:
-        return sf::Vector2f(0, 1);
-    case Direction::Right:
-        return sf::Vector2f(1, 0);
-    }
-    IJ_UNREACHABLE();
-}
-
-Direction DirectionFromVector(const sf::Vector2f &vector)
-{
-    if (vector.x >= 0)
-    {
-        if (vector.y >= vector.x)
-        {
-            return Direction::Down;
-        }
-        if (vector.y <= -vector.x)
-        {
-            return Direction::Up;
-        }
-        return Direction::Right;
-    }
-    if (vector.y >= -vector.x)
-    {
-        return Direction::Down;
-    }
-    if (vector.y <= vector.x)
-    {
-        return Direction::Up;
-    }
-    return Direction::Left;
-}
-
-enum class ObjectAnimation
-{
-    Standing,
-    Walking,
-    Attacking,
-    Dead
-};
-
-[[nodiscard]] const char *GetObjectAnimationName(const ObjectAnimation animation)
-{
-    switch (animation)
-    {
-    case ObjectAnimation::Standing:
-        return "Standing";
-    case ObjectAnimation::Walking:
-        return "Walking";
-    case ObjectAnimation::Attacking:
-        return "Attacking";
-    case ObjectAnimation::Dead:
-        return "Dead";
-    }
-    IJ_UNREACHABLE();
-}
-
-using TextureCutter = sf::IntRect(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
-                                  const sf::Vector2i &size);
-
-template <sf::Int32 WalkFrames, sf::Int32 AttackFrames>
-sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const sf::Int32 animationTime, const Direction direction,
-                            const sf::Vector2i &size)
-{
-    sf::Int32 speed = 150;
-    switch (animation)
-    {
-    case ObjectAnimation::Standing:
-        speed = 300;
-        break;
-    case ObjectAnimation::Walking:
-        break;
-    case ObjectAnimation::Attacking:
-        return sf::IntRect(size.x * (((animationTime / 200) % AttackFrames) + WalkFrames),
-                           size.y * AssertCast<int>(direction), size.x, size.y);
-    case ObjectAnimation::Dead:
-        return sf::IntRect(0, size.y * AssertCast<int>(direction), size.x, size.y);
-    }
-    return sf::IntRect(
-        size.x * ((animationTime / 150) % WalkFrames), size.y * AssertCast<int>(direction), size.x, size.y);
-};
-
-sf::Vector2f normalize(const sf::Vector2f &source)
-{
-    float length = sqrt((source.x * source.x) + (source.y * source.y));
-    if (length == 0)
-    {
-        return source;
-    }
-    return sf::Vector2f(source.x / length, source.y / length);
-}
-
-struct ObjectBehavior;
-
-using Health = sf::Int32;
-
-struct VisualEntity
-{
-    sf::Sprite Sprite;
-    sf::Vector2i SpriteSize;
-    sf::Int32 VerticalOffset = 0;
-    sf::Int32 AnimationTime = 0;
-    TextureCutter *Cutter = nullptr;
-    ObjectAnimation Animation = ObjectAnimation::Standing;
-
-    sf::Vector2f GetOffset() const
-    {
-        return sf::Vector2f(AssertCast<float>(SpriteSize.x / 2), AssertCast<float>(SpriteSize.y)) -
-               sf::Vector2f(0, AssertCast<float>(VerticalOffset));
-    }
-};
-
-enum class ObjectActivity
-{
-    Standing,
-    Walking,
-    Attacking,
-    Dead
-};
-
-struct LogicEntity;
-
-bool isDead(const LogicEntity &entity);
-
-struct LogicEntity
-{
-    ObjectActivity GetActivity() const
-    {
-        return Activity;
+        assert(from == static_cast<From>(static_cast<To>(from)));
+        return static_cast<To>(from);
     }
 
-    void SetActivity(const ObjectActivity activity)
+    enum class ObjectAnimation
     {
-        if (isDead(*this))
-        {
-            Activity = ObjectActivity::Dead;
-            return;
-        }
-        Activity = activity;
-    }
-
-    [[nodiscard]] bool inflictDamage(const Health damage)
-    {
-        if (currentHealth == 0)
-        {
-            return false;
-        }
-        currentHealth -= damage;
-        if (currentHealth < 0)
-        {
-            currentHealth = 0;
-        }
-        if (isDead(*this))
-        {
-            SetActivity(ObjectActivity::Dead);
-        }
-        return true;
-    }
-
-    Health GetCurrentHealth() const
-    {
-        return currentHealth;
-    }
-
-    Health GetMaximumHealth() const
-    {
-        return maximumHealth;
-    }
-
-    std::unique_ptr<ObjectBehavior> Behavior;
-    sf::Vector2f Position;
-    sf::Vector2f Direction;
-    bool HasCollisionWithWalls = true;
-    bool HasBumpedIntoWall = false;
-
-private:
-    Health currentHealth = 100;
-    Health maximumHealth = 100;
-    ObjectActivity Activity = ObjectActivity::Standing;
-};
-
-bool isDead(const LogicEntity &entity)
-{
-    return (entity.GetCurrentHealth() == 0);
-}
-
-struct Object final
-{
-    VisualEntity Visuals;
-    LogicEntity Logic;
-};
-
-struct RandomNumberGenerator
-{
-    virtual ~RandomNumberGenerator()
-    {
-    }
-
-    virtual sf::Int32 GenerateInt32(sf::Int32 minimum, sf::Int32 maximum) = 0;
-    virtual size_t GenerateSize(size_t minimum, size_t maximum) = 0;
-};
-
-struct StandardRandomNumberGenerator final : RandomNumberGenerator
-{
-    std::random_device seedGenerator;
-    std::default_random_engine engine;
-
-    StandardRandomNumberGenerator()
-        : engine(seedGenerator())
-    {
-    }
-
-    sf::Int32 GenerateInt32(sf::Int32 minimum, sf::Int32 maximum) override
-    {
-        std::uniform_int_distribution<sf::Int32> distribution(minimum, maximum);
-        return distribution(engine);
-    }
-
-    size_t GenerateSize(size_t minimum, size_t maximum) override
-    {
-        std::uniform_int_distribution<size_t> distribution(minimum, maximum);
-        return distribution(engine);
-    }
-};
-
-struct FloatingText final
-{
-    std::unique_ptr<sf::Text> Text;
-    sf::Time Age;
-    sf::Time MaxAge;
-
-    explicit FloatingText(const sf::String &text, const sf::Vector2f &position, const sf::Font &font,
-                          RandomNumberGenerator &random)
-        : Text(std::make_unique<sf::Text>(text, font, 14u))
-        , Age()
-        , MaxAge(sf::milliseconds(random.GenerateInt32(5000, 10'000)))
-    {
-        Text->setPosition(position + sf::Vector2f(AssertCast<float>(20 - random.GenerateInt32(0, 39)),
-                                                  AssertCast<float>(-100 + random.GenerateInt32(0, 39))));
-        Text->setFillColor(sf::Color::Red);
-        Text->setOutlineColor(sf::Color::Black);
-        Text->setOutlineThickness(1);
-    }
-
-    void Update(const sf::Time &deltaTime)
-    {
-        Age += deltaTime;
-        Text->setPosition(Text->getPosition() + sf::Vector2f(0, deltaTime.asSeconds() * -10));
-    }
-
-    bool HasExpired() const
-    {
-        return (Age >= MaxAge);
-    }
-};
-
-constexpr int NoTile = 3;
-
-struct Map final
-{
-    std::vector<int> Tiles;
-    size_t Width;
-
-    size_t GetHeight() const
-    {
-        return Tiles.size() / Width;
-    }
-
-    int GetTileAt(const size_t x, const size_t y) const
-    {
-        return Tiles[(y * Width) + x];
-    }
-};
-
-[[nodiscard]] Map GenerateRandomMap(RandomNumberGenerator &random)
-{
-    Map result;
-    result.Width = 500;
-    for (size_t i = 0; i < (500 * result.Width); ++i)
-    {
-        result.Tiles.push_back(random.GenerateInt32(0, 3));
-    }
-    return result;
-}
-
-struct World final
-{
-    std::vector<Object> enemies;
-    std::vector<FloatingText> FloatingTexts;
-    const sf::Font &Font;
-    const Map &map;
-
-    explicit World(const sf::Font &font, const Map &map)
-        : Font(font)
-        , map(map)
-    {
-    }
-};
-
-[[nodiscard]] Object *FindEnemyByPosition(World &world, const sf::Vector2f &position)
-{
-    for (Object &enemy : world.enemies)
-    {
-        const sf::Vector2f topLeft = enemy.Logic.Position - enemy.Visuals.GetOffset();
-        const sf::Vector2f bottomRight = topLeft + sf::Vector2f(enemy.Visuals.SpriteSize);
-        if ((position.x >= topLeft.x) && (position.x <= bottomRight.x) && (position.y >= topLeft.y) &&
-            (position.y <= bottomRight.y))
-        {
-            return &enemy;
-        }
-    }
-    return nullptr;
-}
-
-template <class T>
-void EraseRandomElementUnstable(std::vector<T> &container, RandomNumberGenerator &random)
-{
-    if (container.empty())
-    {
-        return;
-    }
-    const size_t erased = random.GenerateSize(0, container.size() - 1);
-    container[erased] = std::move(container.back());
-    container.pop_back();
-}
-
-void InflictDamage(LogicEntity &damaged, World &world, const Health damage, RandomNumberGenerator &random)
-{
-    if (!damaged.inflictDamage(damage))
-    {
-        return;
-    }
-    constexpr size_t floatingTextLimit = 1000;
-    while (world.FloatingTexts.size() >= floatingTextLimit)
-    {
-        EraseRandomElementUnstable(world.FloatingTexts, random);
-    }
-    world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font, random);
-}
-
-struct ObjectBehavior
-{
-    virtual ~ObjectBehavior()
-    {
-    }
-
-    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
-                        RandomNumberGenerator &random) = 0;
-};
-
-struct PlayerCharacter final : ObjectBehavior
-{
-    const std::array<bool, 4> &isDirectionKeyPressed;
-    bool &isAttackPressed;
-
-    explicit PlayerCharacter(const std::array<bool, 4> &isDirectionKeyPressed, bool &isAttackPressed)
-        : isDirectionKeyPressed(isDirectionKeyPressed)
-        , isAttackPressed(isAttackPressed)
-    {
-    }
-
-    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
-                        RandomNumberGenerator &random) final
-    {
-        assert(&object == &player);
-        (void)player;
-        (void)deltaTime;
-
-        sf::Vector2f direction;
-        for (size_t i = 0; i < 4; ++i)
-        {
-            if (!isDirectionKeyPressed[i])
-            {
-                continue;
-            }
-            direction += DirectionToVector(AssertCast<Direction>(i));
-        }
-        if (direction == sf::Vector2f())
-        {
-            if (isAttackPressed && !isDead(object))
-            {
-                object.SetActivity(ObjectActivity::Attacking);
-                for (Object &enemy : world.enemies)
-                {
-                    InflictDamage(enemy.Logic, world, 2, random);
-                }
-            }
-            else
-            {
-                object.SetActivity(ObjectActivity::Standing);
-            }
-        }
-        else
-        {
-            object.SetActivity(ObjectActivity::Walking);
-            object.Direction = normalize(direction);
-        }
-    }
-};
-
-bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, const float distance)
-{
-    const float xDiff = (first.x - second.x);
-    const float yDiff = (first.y - second.y);
-    return (distance * distance) >= ((xDiff * xDiff) + (yDiff * yDiff));
-}
-
-struct Bot final : ObjectBehavior
-{
-    virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
-                        RandomNumberGenerator &random) final
-    {
-        (void)world;
-        if (isDead(object))
-        {
-            return;
-        }
-        switch (_state)
-        {
-        case State::MovingAround:
-            if (isWithinDistance(object.Position, player.Position, 400) && !isDead(player))
-            {
-                _state = State::Chasing;
-                _target = &player;
-                break;
-            }
-            if (object.HasBumpedIntoWall || (random.GenerateInt32(0, 1999) < 10))
-            {
-                switch (object.GetActivity())
-                {
-                case ObjectActivity::Standing:
-                    object.SetActivity(ObjectActivity::Walking);
-                    break;
-                case ObjectActivity::Walking:
-                case ObjectActivity::Attacking:
-                case ObjectActivity::Dead:
-                    object.SetActivity(ObjectActivity::Standing);
-                    break;
-                }
-                object.Direction = normalize(sf::Vector2f(AssertCast<float>(random.GenerateInt32(0, 9) - 5),
-                                                          AssertCast<float>(random.GenerateInt32(0, 9) - 5)));
-            }
-            break;
-
-        case State::Chasing:
-            assert(_target);
-            if (isDead(*_target))
-            {
-                object.SetActivity(ObjectActivity::Standing);
-                _state = State::MovingAround;
-                _target = nullptr;
-            }
-            else if (isWithinDistance(object.Position, _target->Position, 40))
-            {
-                _state = State::Attacking;
-                object.SetActivity(ObjectActivity::Standing);
-            }
-            else if (isWithinDistance(object.Position, _target->Position, 600))
-            {
-                object.SetActivity(ObjectActivity::Walking);
-                object.Direction = normalize(_target->Position - object.Position);
-            }
-            else
-            {
-                object.SetActivity(ObjectActivity::Standing);
-                _state = State::MovingAround;
-                _target = nullptr;
-            }
-            break;
-
-        case State::Attacking:
-            if (!isWithinDistance(object.Position, _target->Position, 60))
-            {
-                _state = State::Chasing;
-                object.SetActivity(ObjectActivity::Standing);
-                break;
-            }
-            _sinceLastAttack += deltaTime.asMilliseconds();
-            constexpr sf::Int32 attackDelay = 1000;
-            while (_sinceLastAttack >= attackDelay)
-            {
-                object.SetActivity(ObjectActivity::Attacking);
-                InflictDamage(player, world, 1, random);
-                _sinceLastAttack -= attackDelay;
-            }
-            if (isDead(player))
-            {
-                _state = State::MovingAround;
-                object.SetActivity(ObjectActivity::Standing);
-            }
-            break;
-        }
-        // acknowledged
-        object.HasBumpedIntoWall = false;
-    }
-
-    enum class State
-    {
-        MovingAround,
-        Chasing,
-        Attacking
+        Standing,
+        Walking,
+        Attacking,
+        Dead
     };
 
-    [[nodiscard]] State GetState() const
+    [[nodiscard]] const char *GetObjectAnimationName(const ObjectAnimation animation)
     {
-        return _state;
-    }
-
-    [[nodiscard]] static const char *GetStateName(const State state)
-    {
-        switch (state)
+        switch (animation)
         {
-        case State::MovingAround:
-            return "MovingAround";
-        case State::Chasing:
-            return "Chasing";
-        case State::Attacking:
+        case ObjectAnimation::Standing:
+            return "Standing";
+        case ObjectAnimation::Walking:
+            return "Walking";
+        case ObjectAnimation::Attacking:
             return "Attacking";
+        case ObjectAnimation::Dead:
+            return "Dead";
         }
         IJ_UNREACHABLE();
     }
 
-    [[nodiscard]] LogicEntity *GetTarget() const
+    using TextureCutter = sf::IntRect(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
+                                      const sf::Vector2i &size);
+
+    template <sf::Int32 WalkFrames, sf::Int32 AttackFrames>
+    sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const sf::Int32 animationTime,
+                                const Direction direction, const sf::Vector2i &size)
     {
-        return _target;
-    }
-
-private:
-    State _state = State::MovingAround;
-    LogicEntity *_target = nullptr;
-    sf::Int32 _sinceLastAttack = 0;
-};
-
-struct Camera
-{
-    sf::Vector2f Center;
-
-    void draw(sf::RenderWindow &window, const sf::Sprite &sprite)
-    {
-        sf::Sprite moved(sprite);
-        moved.move(-Center);
-        moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-        window.draw(moved);
-    }
-
-    void draw(sf::RenderWindow &window, const sf::CircleShape &shape)
-    {
-        sf::CircleShape moved(shape);
-        moved.move(-Center);
-        moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-        window.draw(moved);
-    }
-
-    void draw(sf::RenderWindow &window, const sf::RectangleShape &shape)
-    {
-        sf::RectangleShape moved(shape);
-        moved.move(-Center);
-        moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-        window.draw(moved);
-    }
-
-    void draw(sf::RenderWindow &window, const sf::Text &text)
-    {
-        sf::Text moved(text);
-        moved.move(-Center);
-        moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-        window.draw(moved);
-    }
-
-    sf::Vector2f getWorldFromScreenCoordinates(const sf::RenderWindow &window, const sf::Vector2i &point) const
-    {
-        return (sf::Vector2f(window.getSize()) * -0.5f) + Center + sf::Vector2f(point);
-    }
-
-    bool canSee(const sf::RenderWindow &window, const VisualEntity &entity) const
-    {
-        const sf::Rect<float> cameraArea(
-            getWorldFromScreenCoordinates(window, sf::Vector2i(0, 0)), sf::Vector2f(window.getSize()));
-        const sf::Rect<float> entityArea(entity.Sprite.getPosition(), sf::Vector2f(entity.SpriteSize));
-        return cameraArea.intersects(entityArea);
-    }
-};
-
-constexpr int TileSize = 32;
-const sf::Vector2f DefaultEntityDimensions(8, 8);
-
-[[nodiscard]] bool IsWalkablePoint(const sf::Vector2f &point, const World &world)
-{
-    const sf::Vector2<ptrdiff_t> tileIndex(
-        AssertCast<ptrdiff_t>(std::floor(point.x / TileSize)), AssertCast<ptrdiff_t>(std::floor(point.y / TileSize)));
-    if ((tileIndex.x < 0) || (tileIndex.y < 0))
-    {
-        return false;
-    }
-    if ((tileIndex.x >= AssertCast<ptrdiff_t>(world.map.Width)) ||
-        (tileIndex.y >= AssertCast<ptrdiff_t>(world.map.GetHeight())))
-    {
-        return false;
-    }
-    const int tile = world.map.GetTileAt(AssertCast<size_t>(tileIndex.x), AssertCast<size_t>(tileIndex.y));
-    return (tile != NoTile);
-}
-
-[[nodiscard]] bool IsWalkable(const sf::Vector2f &point, const sf::Vector2f &entityDimensions, const World &world)
-{
-    const sf::Vector2f halfDimensions = entityDimensions / 2.0f;
-    // current heuristic: check the four corners of the bounding box around the entity in addition to the center
-    return
-        // top left
-        IsWalkablePoint(point - halfDimensions, world) &&
-        // bottom right
-        IsWalkablePoint(point + halfDimensions, world) &&
-        // bottom left
-        IsWalkablePoint(point + sf::Vector2f(-halfDimensions.x, halfDimensions.y), world) &&
-        // top right
-        IsWalkablePoint(point + sf::Vector2f(halfDimensions.x, -halfDimensions.y), world) &&
-        // center
-        IsWalkablePoint(point, world);
-}
-
-void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &desiredChange, const World &world)
-{
-    const sf::Vector2f desiredDestination = (entity.Position + desiredChange);
-    if (!entity.HasCollisionWithWalls || IsWalkable(desiredDestination, DefaultEntityDimensions, world))
-    {
-        entity.Position = desiredDestination;
-        entity.HasBumpedIntoWall = false;
-    }
-    else if (const sf::Vector2f horizontalAlternative = (entity.Position + sf::Vector2f(desiredChange.x, 0));
-             IsWalkable(horizontalAlternative, DefaultEntityDimensions, world))
-    {
-        entity.Position = horizontalAlternative;
-        entity.HasBumpedIntoWall = true;
-    }
-    else if (const sf::Vector2f verticalAlternative = (entity.Position + sf::Vector2f(0, desiredChange.y));
-             IsWalkable(verticalAlternative, DefaultEntityDimensions, world))
-    {
-        entity.Position = verticalAlternative;
-        entity.HasBumpedIntoWall = true;
-    }
-    else
-    {
-        entity.HasBumpedIntoWall = true;
-    }
-}
-
-void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
-                 RandomNumberGenerator &random)
-{
-    object.Logic.Behavior->update(object.Logic, player, world, deltaTime, random);
-
-    switch (object.Logic.GetActivity())
-    {
-    case ObjectActivity::Standing:
-        break;
-
-    case ObjectActivity::Attacking:
-        break;
-
-    case ObjectActivity::Dead:
-        break;
-
-    case ObjectActivity::Walking: {
-        const float velocity = 80;
-        const auto change = object.Logic.Direction * deltaTime.asSeconds() * velocity;
-        MoveWithCollisionDetection(object.Logic, change, world);
-        break;
-    }
-    }
-}
-
-void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime)
-{
-    bool isColoredDead = false;
-    switch (logic.GetActivity())
-    {
-    case ObjectActivity::Standing:
-        visuals.Animation = ObjectAnimation::Standing;
-        break;
-
-    case ObjectActivity::Attacking:
-        visuals.Animation = ObjectAnimation::Attacking;
-        break;
-
-    case ObjectActivity::Dead:
-        visuals.Animation = ObjectAnimation::Dead;
-        isColoredDead = true;
-        break;
-
-    case ObjectActivity::Walking: {
-        visuals.Animation = ObjectAnimation::Walking;
-        break;
-    }
-    }
-
-    visuals.AnimationTime += deltaTime.asMilliseconds();
-    visuals.Sprite.setTextureRect(visuals.Cutter(
-        visuals.Animation, visuals.AnimationTime, DirectionFromVector(logic.Direction), visuals.SpriteSize));
-    // the position of an object is at the bottom center of the sprite (on the ground)
-    visuals.Sprite.setPosition(logic.Position - visuals.GetOffset());
-    visuals.Sprite.setColor(isColoredDead ? sf::Color(128, 128, 128, 255) : sf::Color::White);
-}
-
-float bottomOfSprite(const sf::Sprite &sprite)
-{
-    return (sprite.getPosition().y + AssertCast<float>(sprite.getTextureRect().height));
-}
-
-void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &object)
-{
-    if (object.Logic.GetCurrentHealth() == object.Logic.GetMaximumHealth())
-    {
-        return;
-    }
-    constexpr sf::Int32 width = 24;
-    constexpr sf::Int32 height = 4;
-    const float x = object.Logic.Position.x - width / 2;
-    const float y = object.Logic.Position.y - AssertCast<float>(object.Visuals.Sprite.getTextureRect().height);
-    const float greenPortion = AssertCast<float>(object.Logic.GetCurrentHealth()) /
-                               AssertCast<float>(object.Logic.GetMaximumHealth()) * AssertCast<float>(width);
-    {
-        sf::RectangleShape green;
-        green.setPosition(sf::Vector2f(x, y));
-        green.setFillColor(sf::Color::Green);
-        green.setSize(sf::Vector2f(greenPortion, height));
-        camera.draw(window, green);
-    }
-    {
-        sf::RectangleShape red;
-        red.setPosition(sf::Vector2f(x + greenPortion, y));
-        red.setFillColor(sf::Color::Red);
-        red.setSize(sf::Vector2f(width - greenPortion, height));
-        camera.draw(window, red);
-    }
-}
-
-void loadAllSprites(const std::filesystem::path &assets)
-{
-    std::filesystem::directory_iterator i(assets);
-    for (; i != std::filesystem::directory_iterator(); ++i)
-    {
-        const auto &entry = *i;
-        if (entry.is_directory())
+        sf::Int32 speed = 150;
+        switch (animation)
         {
-            loadAllSprites(entry.path());
+        case ObjectAnimation::Standing:
+            speed = 300;
+            break;
+        case ObjectAnimation::Walking:
+            break;
+        case ObjectAnimation::Attacking:
+            return sf::IntRect(size.x * (((animationTime / 200) % AttackFrames) + WalkFrames),
+                               size.y * AssertCast<int>(direction), size.x, size.y);
+        case ObjectAnimation::Dead:
+            return sf::IntRect(0, size.y * AssertCast<int>(direction), size.x, size.y);
         }
-        else if (entry.is_regular_file() && (entry.path().extension() == ".png"))
+        return sf::IntRect(
+            size.x * ((animationTime / 150) % WalkFrames), size.y * AssertCast<int>(direction), size.x, size.y);
+    };
+
+    sf::Vector2f normalize(const sf::Vector2f &source)
+    {
+        float length = sqrt((source.x * source.x) + (source.y * source.y));
+        if (length == 0)
         {
-            sf::Texture texture;
-            if (!texture.loadFromFile(entry.path().string()))
+            return source;
+        }
+        return sf::Vector2f(source.x / length, source.y / length);
+    }
+
+    struct ObjectBehavior;
+
+    using Health = sf::Int32;
+
+    struct VisualEntity
+    {
+        sf::Sprite Sprite;
+        sf::Vector2i SpriteSize;
+        sf::Int32 VerticalOffset = 0;
+        sf::Int32 AnimationTime = 0;
+        TextureCutter *Cutter = nullptr;
+        ObjectAnimation Animation = ObjectAnimation::Standing;
+
+        sf::Vector2f GetOffset() const
+        {
+            return sf::Vector2f(AssertCast<float>(SpriteSize.x / 2), AssertCast<float>(SpriteSize.y)) -
+                   sf::Vector2f(0, AssertCast<float>(VerticalOffset));
+        }
+    };
+
+    enum class ObjectActivity
+    {
+        Standing,
+        Walking,
+        Attacking,
+        Dead
+    };
+
+    struct LogicEntity;
+
+    bool isDead(const LogicEntity &entity);
+
+    struct LogicEntity
+    {
+        ObjectActivity GetActivity() const
+        {
+            return Activity;
+        }
+
+        void SetActivity(const ObjectActivity activity)
+        {
+            if (isDead(*this))
             {
-                std::cerr << "Could not load " << entry.path() << '\n';
+                Activity = ObjectActivity::Dead;
+                return;
+            }
+            Activity = activity;
+        }
+
+        [[nodiscard]] bool inflictDamage(const Health damage)
+        {
+            if (currentHealth == 0)
+            {
+                return false;
+            }
+            currentHealth -= damage;
+            if (currentHealth < 0)
+            {
+                currentHealth = 0;
+            }
+            if (isDead(*this))
+            {
+                SetActivity(ObjectActivity::Dead);
+            }
+            return true;
+        }
+
+        Health GetCurrentHealth() const
+        {
+            return currentHealth;
+        }
+
+        Health GetMaximumHealth() const
+        {
+            return maximumHealth;
+        }
+
+        std::unique_ptr<ObjectBehavior> Behavior;
+        sf::Vector2f Position;
+        sf::Vector2f Direction;
+        bool HasCollisionWithWalls = true;
+        bool HasBumpedIntoWall = false;
+
+    private:
+        Health currentHealth = 100;
+        Health maximumHealth = 100;
+        ObjectActivity Activity = ObjectActivity::Standing;
+    };
+
+    bool isDead(const LogicEntity &entity)
+    {
+        return (entity.GetCurrentHealth() == 0);
+    }
+
+    struct Object final
+    {
+        VisualEntity Visuals;
+        LogicEntity Logic;
+    };
+
+    struct RandomNumberGenerator
+    {
+        virtual ~RandomNumberGenerator()
+        {
+        }
+
+        virtual sf::Int32 GenerateInt32(sf::Int32 minimum, sf::Int32 maximum) = 0;
+        virtual size_t GenerateSize(size_t minimum, size_t maximum) = 0;
+    };
+
+    struct StandardRandomNumberGenerator final : RandomNumberGenerator
+    {
+        std::random_device seedGenerator;
+        std::default_random_engine engine;
+
+        StandardRandomNumberGenerator()
+            : engine(seedGenerator())
+        {
+        }
+
+        sf::Int32 GenerateInt32(sf::Int32 minimum, sf::Int32 maximum) override
+        {
+            std::uniform_int_distribution<sf::Int32> distribution(minimum, maximum);
+            return distribution(engine);
+        }
+
+        size_t GenerateSize(size_t minimum, size_t maximum) override
+        {
+            std::uniform_int_distribution<size_t> distribution(minimum, maximum);
+            return distribution(engine);
+        }
+    };
+
+    struct FloatingText final
+    {
+        std::unique_ptr<sf::Text> Text;
+        sf::Time Age;
+        sf::Time MaxAge;
+
+        explicit FloatingText(const sf::String &text, const sf::Vector2f &position, const sf::Font &font,
+                              RandomNumberGenerator &random)
+            : Text(std::make_unique<sf::Text>(text, font, 14u))
+            , Age()
+            , MaxAge(sf::milliseconds(random.GenerateInt32(5000, 10'000)))
+        {
+            Text->setPosition(position + sf::Vector2f(AssertCast<float>(20 - random.GenerateInt32(0, 39)),
+                                                      AssertCast<float>(-100 + random.GenerateInt32(0, 39))));
+            Text->setFillColor(sf::Color::Red);
+            Text->setOutlineColor(sf::Color::Black);
+            Text->setOutlineThickness(1);
+        }
+
+        void Update(const sf::Time &deltaTime)
+        {
+            Age += deltaTime;
+            Text->setPosition(Text->getPosition() + sf::Vector2f(0, deltaTime.asSeconds() * -10));
+        }
+
+        bool HasExpired() const
+        {
+            return (Age >= MaxAge);
+        }
+    };
+
+    constexpr int NoTile = 3;
+
+    struct Map final
+    {
+        std::vector<int> Tiles;
+        size_t Width;
+
+        size_t GetHeight() const
+        {
+            return Tiles.size() / Width;
+        }
+
+        int GetTileAt(const size_t x, const size_t y) const
+        {
+            return Tiles[(y * Width) + x];
+        }
+    };
+
+    [[nodiscard]] Map GenerateRandomMap(RandomNumberGenerator &random)
+    {
+        Map result;
+        result.Width = 500;
+        for (size_t i = 0; i < (500 * result.Width); ++i)
+        {
+            result.Tiles.push_back(random.GenerateInt32(0, 3));
+        }
+        return result;
+    }
+
+    struct World final
+    {
+        std::vector<Object> enemies;
+        std::vector<FloatingText> FloatingTexts;
+        const sf::Font &Font;
+        const Map &map;
+
+        explicit World(const sf::Font &font, const Map &map)
+            : Font(font)
+            , map(map)
+        {
+        }
+    };
+
+    [[nodiscard]] Object *FindEnemyByPosition(World &world, const sf::Vector2f &position)
+    {
+        for (Object &enemy : world.enemies)
+        {
+            const sf::Vector2f topLeft = enemy.Logic.Position - enemy.Visuals.GetOffset();
+            const sf::Vector2f bottomRight = topLeft + sf::Vector2f(enemy.Visuals.SpriteSize);
+            if ((position.x >= topLeft.x) && (position.x <= bottomRight.x) && (position.y >= topLeft.y) &&
+                (position.y <= bottomRight.y))
+            {
+                return &enemy;
+            }
+        }
+        return nullptr;
+    }
+
+    template <class T>
+    void EraseRandomElementUnstable(std::vector<T> &container, RandomNumberGenerator &random)
+    {
+        if (container.empty())
+        {
+            return;
+        }
+        const size_t erased = random.GenerateSize(0, container.size() - 1);
+        container[erased] = std::move(container.back());
+        container.pop_back();
+    }
+
+    void InflictDamage(LogicEntity &damaged, World &world, const Health damage, RandomNumberGenerator &random)
+    {
+        if (!damaged.inflictDamage(damage))
+        {
+            return;
+        }
+        constexpr size_t floatingTextLimit = 1000;
+        while (world.FloatingTexts.size() >= floatingTextLimit)
+        {
+            EraseRandomElementUnstable(world.FloatingTexts, random);
+        }
+        world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font, random);
+    }
+
+    struct ObjectBehavior
+    {
+        virtual ~ObjectBehavior()
+        {
+        }
+
+        virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                            RandomNumberGenerator &random) = 0;
+    };
+
+    struct PlayerCharacter final : ObjectBehavior
+    {
+        const std::array<bool, 4> &isDirectionKeyPressed;
+        bool &isAttackPressed;
+
+        explicit PlayerCharacter(const std::array<bool, 4> &isDirectionKeyPressed, bool &isAttackPressed)
+            : isDirectionKeyPressed(isDirectionKeyPressed)
+            , isAttackPressed(isAttackPressed)
+        {
+        }
+
+        virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                            RandomNumberGenerator &random) final
+        {
+            assert(&object == &player);
+            (void)player;
+            (void)deltaTime;
+
+            sf::Vector2f direction;
+            for (size_t i = 0; i < 4; ++i)
+            {
+                if (!isDirectionKeyPressed[i])
+                {
+                    continue;
+                }
+                direction += DirectionToVector(AssertCast<Direction>(i));
+            }
+            if (direction == sf::Vector2f())
+            {
+                if (isAttackPressed && !isDead(object))
+                {
+                    object.SetActivity(ObjectActivity::Attacking);
+                    for (Object &enemy : world.enemies)
+                    {
+                        InflictDamage(enemy.Logic, world, 2, random);
+                    }
+                }
+                else
+                {
+                    object.SetActivity(ObjectActivity::Standing);
+                }
+            }
+            else
+            {
+                object.SetActivity(ObjectActivity::Walking);
+                object.Direction = normalize(direction);
+            }
+        }
+    };
+
+    bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, const float distance)
+    {
+        const float xDiff = (first.x - second.x);
+        const float yDiff = (first.y - second.y);
+        return (distance * distance) >= ((xDiff * xDiff) + (yDiff * yDiff));
+    }
+
+    struct Bot final : ObjectBehavior
+    {
+        virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                            RandomNumberGenerator &random) final
+        {
+            (void)world;
+            if (isDead(object))
+            {
+                return;
+            }
+            switch (_state)
+            {
+            case State::MovingAround:
+                if (isWithinDistance(object.Position, player.Position, 400) && !isDead(player))
+                {
+                    _state = State::Chasing;
+                    _target = &player;
+                    break;
+                }
+                if (object.HasBumpedIntoWall || (random.GenerateInt32(0, 1999) < 10))
+                {
+                    switch (object.GetActivity())
+                    {
+                    case ObjectActivity::Standing:
+                        object.SetActivity(ObjectActivity::Walking);
+                        break;
+                    case ObjectActivity::Walking:
+                    case ObjectActivity::Attacking:
+                    case ObjectActivity::Dead:
+                        object.SetActivity(ObjectActivity::Standing);
+                        break;
+                    }
+                    object.Direction = normalize(sf::Vector2f(AssertCast<float>(random.GenerateInt32(0, 9) - 5),
+                                                              AssertCast<float>(random.GenerateInt32(0, 9) - 5)));
+                }
+                break;
+
+            case State::Chasing:
+                assert(_target);
+                if (isDead(*_target))
+                {
+                    object.SetActivity(ObjectActivity::Standing);
+                    _state = State::MovingAround;
+                    _target = nullptr;
+                }
+                else if (isWithinDistance(object.Position, _target->Position, 40))
+                {
+                    _state = State::Attacking;
+                    object.SetActivity(ObjectActivity::Standing);
+                }
+                else if (isWithinDistance(object.Position, _target->Position, 600))
+                {
+                    object.SetActivity(ObjectActivity::Walking);
+                    object.Direction = normalize(_target->Position - object.Position);
+                }
+                else
+                {
+                    object.SetActivity(ObjectActivity::Standing);
+                    _state = State::MovingAround;
+                    _target = nullptr;
+                }
+                break;
+
+            case State::Attacking:
+                if (!isWithinDistance(object.Position, _target->Position, 60))
+                {
+                    _state = State::Chasing;
+                    object.SetActivity(ObjectActivity::Standing);
+                    break;
+                }
+                _sinceLastAttack += deltaTime.asMilliseconds();
+                constexpr sf::Int32 attackDelay = 1000;
+                while (_sinceLastAttack >= attackDelay)
+                {
+                    object.SetActivity(ObjectActivity::Attacking);
+                    InflictDamage(player, world, 1, random);
+                    _sinceLastAttack -= attackDelay;
+                }
+                if (isDead(player))
+                {
+                    _state = State::MovingAround;
+                    object.SetActivity(ObjectActivity::Standing);
+                }
+                break;
+            }
+            // acknowledged
+            object.HasBumpedIntoWall = false;
+        }
+
+        enum class State
+        {
+            MovingAround,
+            Chasing,
+            Attacking
+        };
+
+        [[nodiscard]] State GetState() const
+        {
+            return _state;
+        }
+
+        [[nodiscard]] static const char *GetStateName(const State state)
+        {
+            switch (state)
+            {
+            case State::MovingAround:
+                return "MovingAround";
+            case State::Chasing:
+                return "Chasing";
+            case State::Attacking:
+                return "Attacking";
+            }
+            IJ_UNREACHABLE();
+        }
+
+        [[nodiscard]] LogicEntity *GetTarget() const
+        {
+            return _target;
+        }
+
+    private:
+        State _state = State::MovingAround;
+        LogicEntity *_target = nullptr;
+        sf::Int32 _sinceLastAttack = 0;
+    };
+
+    struct Camera
+    {
+        sf::Vector2f Center;
+
+        void draw(sf::RenderWindow &window, const sf::Sprite &sprite)
+        {
+            sf::Sprite moved(sprite);
+            moved.move(-Center);
+            moved.move(sf::Vector2f(window.getSize()) * 0.5f);
+            window.draw(moved);
+        }
+
+        void draw(sf::RenderWindow &window, const sf::CircleShape &shape)
+        {
+            sf::CircleShape moved(shape);
+            moved.move(-Center);
+            moved.move(sf::Vector2f(window.getSize()) * 0.5f);
+            window.draw(moved);
+        }
+
+        void draw(sf::RenderWindow &window, const sf::RectangleShape &shape)
+        {
+            sf::RectangleShape moved(shape);
+            moved.move(-Center);
+            moved.move(sf::Vector2f(window.getSize()) * 0.5f);
+            window.draw(moved);
+        }
+
+        void draw(sf::RenderWindow &window, const sf::Text &text)
+        {
+            sf::Text moved(text);
+            moved.move(-Center);
+            moved.move(sf::Vector2f(window.getSize()) * 0.5f);
+            window.draw(moved);
+        }
+
+        sf::Vector2f getWorldFromScreenCoordinates(const sf::RenderWindow &window, const sf::Vector2i &point) const
+        {
+            return (sf::Vector2f(window.getSize()) * -0.5f) + Center + sf::Vector2f(point);
+        }
+
+        bool canSee(const sf::RenderWindow &window, const VisualEntity &entity) const
+        {
+            const sf::Rect<float> cameraArea(
+                getWorldFromScreenCoordinates(window, sf::Vector2i(0, 0)), sf::Vector2f(window.getSize()));
+            const sf::Rect<float> entityArea(entity.Sprite.getPosition(), sf::Vector2f(entity.SpriteSize));
+            return cameraArea.intersects(entityArea);
+        }
+    };
+
+    constexpr int TileSize = 32;
+    const sf::Vector2f DefaultEntityDimensions(8, 8);
+
+    [[nodiscard]] bool IsWalkablePoint(const sf::Vector2f &point, const World &world)
+    {
+        const sf::Vector2<ptrdiff_t> tileIndex(AssertCast<ptrdiff_t>(std::floor(point.x / TileSize)),
+                                               AssertCast<ptrdiff_t>(std::floor(point.y / TileSize)));
+        if ((tileIndex.x < 0) || (tileIndex.y < 0))
+        {
+            return false;
+        }
+        if ((tileIndex.x >= AssertCast<ptrdiff_t>(world.map.Width)) ||
+            (tileIndex.y >= AssertCast<ptrdiff_t>(world.map.GetHeight())))
+        {
+            return false;
+        }
+        const int tile = world.map.GetTileAt(AssertCast<size_t>(tileIndex.x), AssertCast<size_t>(tileIndex.y));
+        return (tile != NoTile);
+    }
+
+    [[nodiscard]] bool IsWalkable(const sf::Vector2f &point, const sf::Vector2f &entityDimensions, const World &world)
+    {
+        const sf::Vector2f halfDimensions = entityDimensions / 2.0f;
+        // current heuristic: check the four corners of the bounding box around the entity in addition to the center
+        return
+            // top left
+            IsWalkablePoint(point - halfDimensions, world) &&
+            // bottom right
+            IsWalkablePoint(point + halfDimensions, world) &&
+            // bottom left
+            IsWalkablePoint(point + sf::Vector2f(-halfDimensions.x, halfDimensions.y), world) &&
+            // top right
+            IsWalkablePoint(point + sf::Vector2f(halfDimensions.x, -halfDimensions.y), world) &&
+            // center
+            IsWalkablePoint(point, world);
+    }
+
+    void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &desiredChange, const World &world)
+    {
+        const sf::Vector2f desiredDestination = (entity.Position + desiredChange);
+        if (!entity.HasCollisionWithWalls || IsWalkable(desiredDestination, DefaultEntityDimensions, world))
+        {
+            entity.Position = desiredDestination;
+            entity.HasBumpedIntoWall = false;
+        }
+        else if (const sf::Vector2f horizontalAlternative = (entity.Position + sf::Vector2f(desiredChange.x, 0));
+                 IsWalkable(horizontalAlternative, DefaultEntityDimensions, world))
+        {
+            entity.Position = horizontalAlternative;
+            entity.HasBumpedIntoWall = true;
+        }
+        else if (const sf::Vector2f verticalAlternative = (entity.Position + sf::Vector2f(0, desiredChange.y));
+                 IsWalkable(verticalAlternative, DefaultEntityDimensions, world))
+        {
+            entity.Position = verticalAlternative;
+            entity.HasBumpedIntoWall = true;
+        }
+        else
+        {
+            entity.HasBumpedIntoWall = true;
+        }
+    }
+
+    void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                     RandomNumberGenerator &random)
+    {
+        object.Logic.Behavior->update(object.Logic, player, world, deltaTime, random);
+
+        switch (object.Logic.GetActivity())
+        {
+        case ObjectActivity::Standing:
+            break;
+
+        case ObjectActivity::Attacking:
+            break;
+
+        case ObjectActivity::Dead:
+            break;
+
+        case ObjectActivity::Walking: {
+            const float velocity = 80;
+            const auto change = object.Logic.Direction * deltaTime.asSeconds() * velocity;
+            MoveWithCollisionDetection(object.Logic, change, world);
+            break;
+        }
+        }
+    }
+
+    void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime)
+    {
+        bool isColoredDead = false;
+        switch (logic.GetActivity())
+        {
+        case ObjectActivity::Standing:
+            visuals.Animation = ObjectAnimation::Standing;
+            break;
+
+        case ObjectActivity::Attacking:
+            visuals.Animation = ObjectAnimation::Attacking;
+            break;
+
+        case ObjectActivity::Dead:
+            visuals.Animation = ObjectAnimation::Dead;
+            isColoredDead = true;
+            break;
+
+        case ObjectActivity::Walking: {
+            visuals.Animation = ObjectAnimation::Walking;
+            break;
+        }
+        }
+
+        visuals.AnimationTime += deltaTime.asMilliseconds();
+        visuals.Sprite.setTextureRect(visuals.Cutter(
+            visuals.Animation, visuals.AnimationTime, DirectionFromVector(logic.Direction), visuals.SpriteSize));
+        // the position of an object is at the bottom center of the sprite (on the ground)
+        visuals.Sprite.setPosition(logic.Position - visuals.GetOffset());
+        visuals.Sprite.setColor(isColoredDead ? sf::Color(128, 128, 128, 255) : sf::Color::White);
+    }
+
+    float bottomOfSprite(const sf::Sprite &sprite)
+    {
+        return (sprite.getPosition().y + AssertCast<float>(sprite.getTextureRect().height));
+    }
+
+    void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &object)
+    {
+        if (object.Logic.GetCurrentHealth() == object.Logic.GetMaximumHealth())
+        {
+            return;
+        }
+        constexpr sf::Int32 width = 24;
+        constexpr sf::Int32 height = 4;
+        const float x = object.Logic.Position.x - width / 2;
+        const float y = object.Logic.Position.y - AssertCast<float>(object.Visuals.Sprite.getTextureRect().height);
+        const float greenPortion = AssertCast<float>(object.Logic.GetCurrentHealth()) /
+                                   AssertCast<float>(object.Logic.GetMaximumHealth()) * AssertCast<float>(width);
+        {
+            sf::RectangleShape green;
+            green.setPosition(sf::Vector2f(x, y));
+            green.setFillColor(sf::Color::Green);
+            green.setSize(sf::Vector2f(greenPortion, height));
+            camera.draw(window, green);
+        }
+        {
+            sf::RectangleShape red;
+            red.setPosition(sf::Vector2f(x + greenPortion, y));
+            red.setFillColor(sf::Color::Red);
+            red.setSize(sf::Vector2f(width - greenPortion, height));
+            camera.draw(window, red);
+        }
+    }
+
+    void loadAllSprites(const std::filesystem::path &assets)
+    {
+        std::filesystem::directory_iterator i(assets);
+        for (; i != std::filesystem::directory_iterator(); ++i)
+        {
+            const auto &entry = *i;
+            if (entry.is_directory())
+            {
+                loadAllSprites(entry.path());
+            }
+            else if (entry.is_regular_file() && (entry.path().extension() == ".png"))
+            {
+                sf::Texture texture;
+                if (!texture.loadFromFile(entry.path().string()))
+                {
+                    std::cerr << "Could not load " << entry.path() << '\n';
+                }
             }
         }
     }
-}
 
-template <class Integer>
-Integer RoundDown(const float value)
-{
-    return AssertCast<Integer>(std::floor(value));
-}
+    template <class Integer>
+    Integer RoundDown(const float value)
+    {
+        return AssertCast<Integer>(std::floor(value));
+    }
 
-sf::Vector2i findTileByCoordinates(const sf::Vector2f &position)
-{
-    return sf::Vector2i(RoundDown<sf::Int32>(position.x / TileSize), RoundDown<sf::Int32>(position.y / TileSize));
-}
+    sf::Vector2i findTileByCoordinates(const sf::Vector2f &position)
+    {
+        return sf::Vector2i(RoundDown<sf::Int32>(position.x / TileSize), RoundDown<sf::Int32>(position.y / TileSize));
+    }
+} // namespace ij
 
 int main()
 {
+    using namespace ij;
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
     const unsigned frameRate = 60;
     window.setFramerateLimit(frameRate);

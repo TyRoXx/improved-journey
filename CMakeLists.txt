@@ -71,7 +71,7 @@ endif()
 find_program(FO_CLANG_FORMAT NAMES clang-format PATHS "C:/Program Files/LLVM/bin")
 if(FO_CLANG_FORMAT)
     file(GLOB_RECURSE formatted
-        benchmarks/**.cpp benchmarks/**.h
+        ij/**.cpp ij/**.h
         tests/**.cpp tests/**.h
         game/**.cpp game/**.h
     )
@@ -80,5 +80,6 @@ endif()
 
 include_directories(.)
 
+add_subdirectory(ij)
 add_subdirectory(game)
 add_subdirectory(tests)
