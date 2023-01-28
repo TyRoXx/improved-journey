@@ -12,6 +12,7 @@
 #include <fmt/format.h>
 #include <ij/AssertCast.h>
 #include <ij/Direction.h>
+#include <ij/FloatingText.h>
 #include <ij/LogicEntity.h>
 #include <ij/Normalize.h>
 #include <ij/ObjectAnimation.h>
@@ -24,43 +25,6 @@
 
 namespace ij
 {
-    struct Object final
-    {
-        VisualEntity Visuals;
-        LogicEntity Logic;
-    };
-
-    struct FloatingText final
-    {
-        std::unique_ptr<sf::Text> Text;
-        sf::Time Age;
-        sf::Time MaxAge;
-
-        explicit FloatingText(const sf::String &text, const sf::Vector2f &position, const sf::Font &font,
-                              RandomNumberGenerator &random)
-            : Text(std::make_unique<sf::Text>(text, font, 14u))
-            , Age()
-            , MaxAge(sf::milliseconds(random.GenerateInt32(5000, 10'000)))
-        {
-            Text->setPosition(position + sf::Vector2f(AssertCast<float>(20 - random.GenerateInt32(0, 39)),
-                                                      AssertCast<float>(-100 + random.GenerateInt32(0, 39))));
-            Text->setFillColor(sf::Color::Red);
-            Text->setOutlineColor(sf::Color::Black);
-            Text->setOutlineThickness(1);
-        }
-
-        void Update(const sf::Time &deltaTime)
-        {
-            Age += deltaTime;
-            Text->setPosition(Text->getPosition() + sf::Vector2f(0, deltaTime.asSeconds() * -10));
-        }
-
-        bool HasExpired() const
-        {
-            return (Age >= MaxAge);
-        }
-    };
-
     constexpr int NoTile = 3;
 
     struct Map final
@@ -89,6 +53,12 @@ namespace ij
         }
         return result;
     }
+
+    struct Object final
+    {
+        VisualEntity Visuals;
+        LogicEntity Logic;
+    };
 
     struct World final
     {
