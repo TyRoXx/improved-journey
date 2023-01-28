@@ -14,37 +14,13 @@
 #include <ij/AssertCast.h>
 #include <ij/Direction.h>
 #include <ij/ObjectAnimation.h>
+#include <ij/TextureCutter.h>
 #include <ij/Unreachable.h>
 #include <iostream>
 #include <random>
 
 namespace ij
 {
-    using TextureCutter = sf::IntRect(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
-                                      const sf::Vector2i &size);
-
-    template <sf::Int32 WalkFrames, sf::Int32 AttackFrames>
-    sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const sf::Int32 animationTime,
-                                const Direction direction, const sf::Vector2i &size)
-    {
-        sf::Int32 speed = 150;
-        switch (animation)
-        {
-        case ObjectAnimation::Standing:
-            speed = 300;
-            break;
-        case ObjectAnimation::Walking:
-            break;
-        case ObjectAnimation::Attacking:
-            return sf::IntRect(size.x * (((animationTime / 200) % AttackFrames) + WalkFrames),
-                               size.y * AssertCast<int>(direction), size.x, size.y);
-        case ObjectAnimation::Dead:
-            return sf::IntRect(0, size.y * AssertCast<int>(direction), size.x, size.y);
-        }
-        return sf::IntRect(
-            size.x * ((animationTime / 150) % WalkFrames), size.y * AssertCast<int>(direction), size.x, size.y);
-    };
-
     sf::Vector2f normalize(const sf::Vector2f &source)
     {
         float length = sqrt((source.x * source.x) + (source.y * source.y));
@@ -758,30 +734,6 @@ int main()
         return 1;
     }
 
-    TextureCutter *const wolfCutter = [](const ObjectAnimation animation, const sf::Int32 animationTime,
-                                         const Direction direction, const sf::Vector2i &size) {
-        sf::Int32 x = 0;
-        sf::Int32 yOffset = 8;
-        switch (animation)
-        {
-        case ObjectAnimation::Standing:
-            break;
-
-        case ObjectAnimation::Walking:
-            x = (size.x * ((animationTime / 80) % 9));
-            break;
-
-        case ObjectAnimation::Attacking:
-            yOffset = 0;
-            x = (size.x * ((animationTime / 80) % 7));
-            break;
-
-        case ObjectAnimation::Dead:
-            return sf::IntRect(5 * size.x, 20 * size.y, size.x, size.y);
-        }
-        return sf::IntRect(x, size.y * (AssertCast<int>(direction) + yOffset), size.x, size.y);
-    };
-
     const auto grassFile = (assets / "LPC Base Assets" / "tiles" / "grass.png");
     sf::Texture grassTexture;
     if (!grassTexture.loadFromFile(grassFile.string()))
@@ -814,7 +766,7 @@ int main()
 
     Object player;
     player.Visuals.Sprite.setTexture(wolfsheet1Texture);
-    player.Visuals.Cutter = wolfCutter;
+    player.Visuals.Cutter = CutWolfTexture;
     player.Visuals.SpriteSize = sf::Vector2i(64, 64);
     player.Logic.Position = sf::Vector2f(400, 400);
     player.Logic.Behavior = std::make_unique<PlayerCharacter>(isDirectionKeyPressed, isAttackPressed);
