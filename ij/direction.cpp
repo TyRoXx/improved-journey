@@ -1,5 +1,5 @@
-#include "direction.h"
-#include "unreachable.h"
+#include "Direction.h"
+#include "Unreachable.h"
 
 sf::Vector2f ij::DirectionToVector(Direction direction)
 {

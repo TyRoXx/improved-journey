@@ -13,36 +13,13 @@
 #include <fmt/format.h>
 #include <ij/AssertCast.h>
 #include <ij/Direction.h>
+#include <ij/ObjectAnimation.h>
 #include <ij/Unreachable.h>
 #include <iostream>
 #include <random>
 
 namespace ij
 {
-    enum class ObjectAnimation
-    {
-        Standing,
-        Walking,
-        Attacking,
-        Dead
-    };
-
-    [[nodiscard]] const char *GetObjectAnimationName(const ObjectAnimation animation)
-    {
-        switch (animation)
-        {
-        case ObjectAnimation::Standing:
-            return "Standing";
-        case ObjectAnimation::Walking:
-            return "Walking";
-        case ObjectAnimation::Attacking:
-            return "Attacking";
-        case ObjectAnimation::Dead:
-            return "Dead";
-        }
-        IJ_UNREACHABLE();
-    }
-
     using TextureCutter = sf::IntRect(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
                                       const sf::Vector2i &size);
 
