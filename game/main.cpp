@@ -21,82 +21,12 @@
 #include <ij/TextureCutter.h>
 #include <ij/Unreachable.h>
 #include <ij/VisualEntity.h>
+#include <ij/World.h>
 #include <iostream>
 #include <random>
 
 namespace ij
 {
-    struct Object final
-    {
-        VisualEntity Visuals;
-        LogicEntity Logic;
-    };
-
-    struct World final
-    {
-        std::vector<Object> enemies;
-        std::vector<FloatingText> FloatingTexts;
-        const sf::Font &Font;
-        const Map &map;
-
-        explicit World(const sf::Font &font, const Map &map)
-            : Font(font)
-            , map(map)
-        {
-        }
-    };
-
-    [[nodiscard]] Object *FindEnemyByPosition(World &world, const sf::Vector2f &position)
-    {
-        for (Object &enemy : world.enemies)
-        {
-            const sf::Vector2f topLeft = enemy.Logic.Position - enemy.Visuals.GetOffset();
-            const sf::Vector2f bottomRight = topLeft + sf::Vector2f(enemy.Visuals.SpriteSize);
-            if ((position.x >= topLeft.x) && (position.x <= bottomRight.x) && (position.y >= topLeft.y) &&
-                (position.y <= bottomRight.y))
-            {
-                return &enemy;
-            }
-        }
-        return nullptr;
-    }
-
-    template <class T>
-    void EraseRandomElementUnstable(std::vector<T> &container, RandomNumberGenerator &random)
-    {
-        if (container.empty())
-        {
-            return;
-        }
-        const size_t erased = random.GenerateSize(0, container.size() - 1);
-        container[erased] = std::move(container.back());
-        container.pop_back();
-    }
-
-    void InflictDamage(LogicEntity &damaged, World &world, const Health damage, RandomNumberGenerator &random)
-    {
-        if (!damaged.inflictDamage(damage))
-        {
-            return;
-        }
-        constexpr size_t floatingTextLimit = 1000;
-        while (world.FloatingTexts.size() >= floatingTextLimit)
-        {
-            EraseRandomElementUnstable(world.FloatingTexts, random);
-        }
-        world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font, random);
-    }
-
-    struct ObjectBehavior
-    {
-        virtual ~ObjectBehavior()
-        {
-        }
-
-        virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
-                            RandomNumberGenerator &random) = 0;
-    };
-
     struct PlayerCharacter final : ObjectBehavior
     {
         const std::array<bool, 4> &isDirectionKeyPressed;

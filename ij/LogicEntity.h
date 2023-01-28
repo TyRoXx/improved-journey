@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Config.hpp>
+#include <SFML/System/Time.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <memory>
 
@@ -17,7 +18,18 @@ namespace ij
 
     bool isDead(const LogicEntity &entity);
 
-    struct ObjectBehavior;
+    struct World;
+    struct RandomNumberGenerator;
+
+    struct ObjectBehavior
+    {
+        virtual ~ObjectBehavior()
+        {
+        }
+
+        virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                            RandomNumberGenerator &random) = 0;
+    };
 
     using Health = sf::Int32;
 
