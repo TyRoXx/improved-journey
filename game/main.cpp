@@ -3,7 +3,6 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Clock.hpp>
@@ -17,30 +16,13 @@
 #include <ij/ObjectAnimation.h>
 #include <ij/TextureCutter.h>
 #include <ij/Unreachable.h>
+#include <ij/VisualEntity.h>
 #include <iostream>
 #include <random>
 
 namespace ij
 {
-    struct ObjectBehavior;
-
     using Health = sf::Int32;
-
-    struct VisualEntity
-    {
-        sf::Sprite Sprite;
-        sf::Vector2i SpriteSize;
-        sf::Int32 VerticalOffset = 0;
-        sf::Int32 AnimationTime = 0;
-        TextureCutter *Cutter = nullptr;
-        ObjectAnimation Animation = ObjectAnimation::Standing;
-
-        sf::Vector2f GetOffset() const
-        {
-            return sf::Vector2f(AssertCast<float>(SpriteSize.x / 2), AssertCast<float>(SpriteSize.y)) -
-                   sf::Vector2f(0, AssertCast<float>(VerticalOffset));
-        }
-    };
 
     enum class ObjectActivity
     {
@@ -53,6 +35,8 @@ namespace ij
     struct LogicEntity;
 
     bool isDead(const LogicEntity &entity);
+
+    struct ObjectBehavior;
 
     struct LogicEntity
     {
