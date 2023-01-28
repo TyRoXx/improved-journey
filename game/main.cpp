@@ -13,6 +13,7 @@
 #include <fmt/format.h>
 #include <ij/AssertCast.h>
 #include <ij/Direction.h>
+#include <ij/Normalize.h>
 #include <ij/ObjectAnimation.h>
 #include <ij/TextureCutter.h>
 #include <ij/Unreachable.h>
@@ -21,16 +22,6 @@
 
 namespace ij
 {
-    sf::Vector2f normalize(const sf::Vector2f &source)
-    {
-        float length = sqrt((source.x * source.x) + (source.y * source.y));
-        if (length == 0)
-        {
-            return source;
-        }
-        return sf::Vector2f(source.x / length, source.y / length);
-    }
-
     struct ObjectBehavior;
 
     using Health = sf::Int32;
