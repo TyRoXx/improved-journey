@@ -89,4 +89,13 @@ namespace ij
         Health maximumHealth = 100;
         ObjectActivity Activity = ObjectActivity::Standing;
     };
+
+    constexpr int TileSize = 32;
+    const sf::Vector2f DefaultEntityDimensions(8, 8);
+
+    [[nodiscard]] bool IsWalkablePoint(const sf::Vector2f &point, const World &world);
+    [[nodiscard]] bool IsWalkable(const sf::Vector2f &point, const sf::Vector2f &entityDimensions, const World &world);
+    void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &desiredChange, const World &world);
+    void updateLogic(LogicEntity &entity, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                     RandomNumberGenerator &random);
 } // namespace ij
