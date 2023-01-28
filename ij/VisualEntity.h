@@ -1,4 +1,5 @@
 #pragma once
+#include "LogicEntity.h"
 #include "TextureCutter.h"
 #include <SFML/Graphics/Sprite.hpp>
 
@@ -15,4 +16,6 @@ namespace ij
 
         sf::Vector2f GetOffset() const;
     };
+
+    void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime);
 } // namespace ij
