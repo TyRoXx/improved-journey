@@ -12,6 +12,7 @@
 #include <fmt/format.h>
 #include <ij/AssertCast.h>
 #include <ij/Direction.h>
+#include <ij/LogicEntity.h>
 #include <ij/Normalize.h>
 #include <ij/ObjectAnimation.h>
 #include <ij/TextureCutter.h>
@@ -22,83 +23,6 @@
 
 namespace ij
 {
-    using Health = sf::Int32;
-
-    enum class ObjectActivity
-    {
-        Standing,
-        Walking,
-        Attacking,
-        Dead
-    };
-
-    struct LogicEntity;
-
-    bool isDead(const LogicEntity &entity);
-
-    struct ObjectBehavior;
-
-    struct LogicEntity
-    {
-        ObjectActivity GetActivity() const
-        {
-            return Activity;
-        }
-
-        void SetActivity(const ObjectActivity activity)
-        {
-            if (isDead(*this))
-            {
-                Activity = ObjectActivity::Dead;
-                return;
-            }
-            Activity = activity;
-        }
-
-        [[nodiscard]] bool inflictDamage(const Health damage)
-        {
-            if (currentHealth == 0)
-            {
-                return false;
-            }
-            currentHealth -= damage;
-            if (currentHealth < 0)
-            {
-                currentHealth = 0;
-            }
-            if (isDead(*this))
-            {
-                SetActivity(ObjectActivity::Dead);
-            }
-            return true;
-        }
-
-        Health GetCurrentHealth() const
-        {
-            return currentHealth;
-        }
-
-        Health GetMaximumHealth() const
-        {
-            return maximumHealth;
-        }
-
-        std::unique_ptr<ObjectBehavior> Behavior;
-        sf::Vector2f Position;
-        sf::Vector2f Direction;
-        bool HasCollisionWithWalls = true;
-        bool HasBumpedIntoWall = false;
-
-    private:
-        Health currentHealth = 100;
-        Health maximumHealth = 100;
-        ObjectActivity Activity = ObjectActivity::Standing;
-    };
-
-    bool isDead(const LogicEntity &entity)
-    {
-        return (entity.GetCurrentHealth() == 0);
-    }
 
     struct Object final
     {
