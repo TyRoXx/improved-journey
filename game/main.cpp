@@ -12,6 +12,7 @@
 #include <fmt/format.h>
 #include <ij/AssertCast.h>
 #include <ij/Bot.h>
+#include <ij/Camera.h>
 #include <ij/Direction.h>
 #include <ij/FloatingText.h>
 #include <ij/LogicEntity.h>
@@ -29,56 +30,6 @@
 
 namespace ij
 {
-    struct Camera
-    {
-        sf::Vector2f Center;
-
-        void draw(sf::RenderWindow &window, const sf::Sprite &sprite)
-        {
-            sf::Sprite moved(sprite);
-            moved.move(-Center);
-            moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-            window.draw(moved);
-        }
-
-        void draw(sf::RenderWindow &window, const sf::CircleShape &shape)
-        {
-            sf::CircleShape moved(shape);
-            moved.move(-Center);
-            moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-            window.draw(moved);
-        }
-
-        void draw(sf::RenderWindow &window, const sf::RectangleShape &shape)
-        {
-            sf::RectangleShape moved(shape);
-            moved.move(-Center);
-            moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-            window.draw(moved);
-        }
-
-        void draw(sf::RenderWindow &window, const sf::Text &text)
-        {
-            sf::Text moved(text);
-            moved.move(-Center);
-            moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-            window.draw(moved);
-        }
-
-        sf::Vector2f getWorldFromScreenCoordinates(const sf::RenderWindow &window, const sf::Vector2i &point) const
-        {
-            return (sf::Vector2f(window.getSize()) * -0.5f) + Center + sf::Vector2f(point);
-        }
-
-        bool canSee(const sf::RenderWindow &window, const VisualEntity &entity) const
-        {
-            const sf::Rect<float> cameraArea(
-                getWorldFromScreenCoordinates(window, sf::Vector2i(0, 0)), sf::Vector2f(window.getSize()));
-            const sf::Rect<float> entityArea(entity.Sprite.getPosition(), sf::Vector2f(entity.SpriteSize));
-            return cameraArea.intersects(entityArea);
-        }
-    };
-
     constexpr int TileSize = 32;
     const sf::Vector2f DefaultEntityDimensions(8, 8);
 
