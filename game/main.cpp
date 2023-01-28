@@ -14,6 +14,7 @@
 #include <ij/Direction.h>
 #include <ij/FloatingText.h>
 #include <ij/LogicEntity.h>
+#include <ij/Map.h>
 #include <ij/Normalize.h>
 #include <ij/ObjectAnimation.h>
 #include <ij/RandomNumberGenerator.h>
@@ -25,35 +26,6 @@
 
 namespace ij
 {
-    constexpr int NoTile = 3;
-
-    struct Map final
-    {
-        std::vector<int> Tiles;
-        size_t Width;
-
-        size_t GetHeight() const
-        {
-            return Tiles.size() / Width;
-        }
-
-        int GetTileAt(const size_t x, const size_t y) const
-        {
-            return Tiles[(y * Width) + x];
-        }
-    };
-
-    [[nodiscard]] Map GenerateRandomMap(RandomNumberGenerator &random)
-    {
-        Map result;
-        result.Width = 500;
-        for (size_t i = 0; i < (500 * result.Width); ++i)
-        {
-            result.Tiles.push_back(random.GenerateInt32(0, 3));
-        }
-        return result;
-    }
-
     struct Object final
     {
         VisualEntity Visuals;
