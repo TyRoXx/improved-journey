@@ -1,5 +1,4 @@
 #pragma once
-#include "Direction.h"
 #include "LogicEntity.h"
 #include "World.h"
 #include <array>

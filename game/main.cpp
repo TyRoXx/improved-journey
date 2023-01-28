@@ -17,16 +17,13 @@
 #include <ij/FloatingText.h>
 #include <ij/LogicEntity.h>
 #include <ij/Map.h>
-#include <ij/Normalize.h>
 #include <ij/ObjectAnimation.h>
 #include <ij/PlayerCharacter.h>
 #include <ij/RandomNumberGenerator.h>
 #include <ij/TextureCutter.h>
-#include <ij/Unreachable.h>
 #include <ij/VisualEntity.h>
 #include <ij/World.h>
 #include <iostream>
-#include <random>
 
 namespace ij
 {

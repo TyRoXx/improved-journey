@@ -1,4 +1,5 @@
 #include "FloatingText.h"
+#include "AssertCast.h"
 
 ij::FloatingText::FloatingText(const sf::String &text, const sf::Vector2f &position, const sf::Font &font,
                                RandomNumberGenerator &random)

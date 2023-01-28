@@ -1,5 +1,4 @@
 #pragma once
-#include "AssertCast.h"
 #include "RandomNumberGenerator.h"
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Text.hpp>
