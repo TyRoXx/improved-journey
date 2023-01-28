@@ -11,20 +11,14 @@
 #include <array>
 #include <filesystem>
 #include <fmt/format.h>
-#include <ij/direction.h>
-#include <ij/unreachable.h>
+#include <ij/AssertCast.h>
+#include <ij/Direction.h>
+#include <ij/Unreachable.h>
 #include <iostream>
 #include <random>
 
 namespace ij
 {
-    template <class To, class From>
-    To AssertCast(const From &from)
-    {
-        assert(from == static_cast<From>(static_cast<To>(from)));
-        return static_cast<To>(from);
-    }
-
     enum class ObjectAnimation
     {
         Standing,
