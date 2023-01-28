@@ -93,12 +93,12 @@ namespace ij
         }
     }
 
-    void updateLogic(Object &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+    void updateLogic(LogicEntity &entity, LogicEntity &player, World &world, const sf::Time &deltaTime,
                      RandomNumberGenerator &random)
     {
-        object.Logic.Behavior->update(object.Logic, player, world, deltaTime, random);
+        entity.Behavior->update(entity, player, world, deltaTime, random);
 
-        switch (object.Logic.GetActivity())
+        switch (entity.GetActivity())
         {
         case ObjectActivity::Standing:
             break;
@@ -111,8 +111,8 @@ namespace ij
 
         case ObjectActivity::Walking: {
             const float velocity = 80;
-            const auto change = object.Logic.Direction * deltaTime.asSeconds() * velocity;
-            MoveWithCollisionDetection(object.Logic, change, world);
+            const auto change = entity.Direction * deltaTime.asSeconds() * velocity;
+            MoveWithCollisionDetection(entity, change, world);
             break;
         }
         }
@@ -390,10 +390,10 @@ int main()
         while (remainingSimulationTime >= simulationTimeStep)
         {
             remainingSimulationTime -= simulationTimeStep;
-            updateLogic(player, player.Logic, world, simulationTimeStep, randomNumberGenerator);
+            updateLogic(player.Logic, player.Logic, world, simulationTimeStep, randomNumberGenerator);
             for (Object &enemy : world.enemies)
             {
-                updateLogic(enemy, player.Logic, world, simulationTimeStep, randomNumberGenerator);
+                updateLogic(enemy.Logic, player.Logic, world, simulationTimeStep, randomNumberGenerator);
             }
         }
 
