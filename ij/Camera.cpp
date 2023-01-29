@@ -1,6 +1,6 @@
 #include "Camera.h"
 
-void ij::Camera::draw(sf::RenderWindow &window, const sf::Sprite &sprite)
+void ij::Camera::draw(sf::RenderWindow &window, const sf::Sprite &sprite) const
 {
     sf::Sprite moved(sprite);
     moved.move(-Center);
@@ -8,7 +8,7 @@ void ij::Camera::draw(sf::RenderWindow &window, const sf::Sprite &sprite)
     window.draw(moved);
 }
 
-void ij::Camera::draw(sf::RenderWindow &window, const sf::CircleShape &shape)
+void ij::Camera::draw(sf::RenderWindow &window, const sf::CircleShape &shape) const
 {
     sf::CircleShape moved(shape);
     moved.move(-Center);
@@ -16,7 +16,7 @@ void ij::Camera::draw(sf::RenderWindow &window, const sf::CircleShape &shape)
     window.draw(moved);
 }
 
-void ij::Camera::draw(sf::RenderWindow &window, const sf::RectangleShape &shape)
+void ij::Camera::draw(sf::RenderWindow &window, const sf::RectangleShape &shape) const
 {
     sf::RectangleShape moved(shape);
     moved.move(-Center);
@@ -24,7 +24,7 @@ void ij::Camera::draw(sf::RenderWindow &window, const sf::RectangleShape &shape)
     window.draw(moved);
 }
 
-void ij::Camera::draw(sf::RenderWindow &window, const sf::Text &text)
+void ij::Camera::draw(sf::RenderWindow &window, const sf::Text &text) const
 {
     sf::Text moved(text);
     moved.move(-Center);

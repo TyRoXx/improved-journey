@@ -12,10 +12,10 @@ namespace ij
     {
         sf::Vector2f Center;
 
-        void draw(sf::RenderWindow &window, const sf::Sprite &sprite);
-        void draw(sf::RenderWindow &window, const sf::CircleShape &shape);
-        void draw(sf::RenderWindow &window, const sf::RectangleShape &shape);
-        void draw(sf::RenderWindow &window, const sf::Text &text);
+        void draw(sf::RenderWindow &window, const sf::Sprite &sprite) const;
+        void draw(sf::RenderWindow &window, const sf::CircleShape &shape) const;
+        void draw(sf::RenderWindow &window, const sf::RectangleShape &shape) const;
+        void draw(sf::RenderWindow &window, const sf::Text &text) const;
         [[nodiscard]] sf::Vector2f getWorldFromScreenCoordinates(const sf::RenderWindow &window,
                                                                  const sf::Vector2i &point) const;
         [[nodiscard]] bool canSee(const sf::RenderWindow &window, const VisualEntity &entity) const;

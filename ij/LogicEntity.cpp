@@ -7,14 +7,12 @@ bool ij::isDead(const LogicEntity &entity)
     return (entity.GetCurrentHealth() == 0);
 }
 
-ij::ObjectBehavior::~ObjectBehavior()
-{
-}
+ij::ObjectBehavior::~ObjectBehavior() = default;
 
 ij::LogicEntity::LogicEntity(std::unique_ptr<ObjectBehavior> behavior, const sf::Vector2f &position,
                              const sf::Vector2f &direction, bool hasCollisionWithWalls, bool hasBumpedIntoWall,
                              Health currentHealth, Health maximumHealth, ObjectActivity activity)
-    : Behavior(move(behavior))
+    : Behavior(std::move(behavior))
     , Position(position)
     , Direction(direction)
     , HasCollisionWithWalls(hasCollisionWithWalls)
@@ -136,16 +134,12 @@ void ij::updateLogic(LogicEntity &entity, LogicEntity &player, World &world, con
     switch (entity.GetActivity())
     {
     case ObjectActivity::Standing:
-        break;
-
     case ObjectActivity::Attacking:
-        break;
-
     case ObjectActivity::Dead:
         break;
 
     case ObjectActivity::Walking: {
-        const float velocity = 80;
+        constexpr float velocity = 80;
         const auto change = entity.Direction * deltaTime.asSeconds() * velocity;
         MoveWithCollisionDetection(entity, change, world);
         break;

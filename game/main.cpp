@@ -40,7 +40,7 @@ namespace ij
         }
         constexpr sf::Int32 width = 24;
         constexpr sf::Int32 height = 4;
-        const float x = object.Logic.Position.x - width / 2;
+        const float x = object.Logic.Position.x - AssertCast<float>(width) / 2;
         const float y = object.Logic.Position.y - AssertCast<float>(object.Visuals.Sprite.getTextureRect().height);
         const float greenPortion = AssertCast<float>(object.Logic.GetCurrentHealth()) /
                                    AssertCast<float>(object.Logic.GetMaximumHealth()) * AssertCast<float>(width);
@@ -98,9 +98,9 @@ namespace ij
         bool isAttackPressed = false;
         Object *selectedEnemy = nullptr;
 
-        void ProcessEvents(sf::RenderWindow &window, Camera &camera, World &world)
+        void ProcessEvents(sf::RenderWindow &window, const Camera &camera, World &world)
         {
-            sf::Event event;
+            sf::Event event = {};
             while (window.pollEvent(event))
             {
                 ImGui::SFML::ProcessEvent(window, event);
@@ -438,7 +438,7 @@ int main()
 {
     using namespace ij;
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
-    const unsigned frameRate = 60;
+    constexpr unsigned frameRate = 60;
     window.setFramerateLimit(frameRate);
     if (!ImGui::SFML::Init(window))
     {

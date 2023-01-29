@@ -9,7 +9,7 @@ namespace ij
     struct Map final
     {
         std::vector<int> Tiles;
-        size_t Width;
+        size_t Width = 0;
 
         [[nodiscard]] size_t GetHeight() const;
         [[nodiscard]] int GetTileAt(size_t x, size_t y) const;

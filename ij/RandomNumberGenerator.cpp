@@ -1,8 +1,6 @@
 #include "RandomNumberGenerator.h"
 
-ij::RandomNumberGenerator::~RandomNumberGenerator()
-{
-}
+ij::RandomNumberGenerator::~RandomNumberGenerator() = default;
 
 ij::StandardRandomNumberGenerator::StandardRandomNumberGenerator()
     : engine(seedGenerator())
