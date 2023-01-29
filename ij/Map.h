@@ -12,7 +12,7 @@ namespace ij
         size_t Width;
 
         [[nodiscard]] size_t GetHeight() const;
-        [[nodiscard]] int GetTileAt(const size_t x, const size_t y) const;
+        [[nodiscard]] int GetTileAt(size_t x, size_t y) const;
     };
 
     [[nodiscard]] Map GenerateRandomMap(RandomNumberGenerator &random);

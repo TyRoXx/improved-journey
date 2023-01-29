@@ -6,7 +6,7 @@
 
 namespace ij
 {
-    bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, const float distance);
+    bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, float distance);
 
     struct Bot final : ObjectBehavior
     {
@@ -21,7 +21,7 @@ namespace ij
         };
 
         [[nodiscard]] State GetState() const;
-        [[nodiscard]] static const char *GetStateName(const State state);
+        [[nodiscard]] static const char *GetStateName(State state);
         [[nodiscard]] LogicEntity *GetTarget() const;
 
     private:

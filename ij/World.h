@@ -27,5 +27,5 @@ namespace ij
     };
 
     [[nodiscard]] Object *FindEnemyByPosition(World &world, const sf::Vector2f &position);
-    void InflictDamage(LogicEntity &damaged, World &world, const Health damage, RandomNumberGenerator &random);
+    void InflictDamage(LogicEntity &damaged, World &world, Health damage, RandomNumberGenerator &random);
 } // namespace ij

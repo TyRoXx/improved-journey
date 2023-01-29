@@ -10,5 +10,5 @@ namespace ij
         Dead
     };
 
-    [[nodiscard]] const char *GetObjectAnimationName(const ObjectAnimation animation);
+    [[nodiscard]] const char *GetObjectAnimationName(ObjectAnimation animation);
 } // namespace ij
