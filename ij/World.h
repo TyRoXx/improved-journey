@@ -8,6 +8,8 @@
 
 namespace ij
 {
+    constexpr unsigned FrameRate = 60;
+
     struct Object final
     {
         VisualEntity Visuals;
@@ -32,4 +34,6 @@ namespace ij
     [[nodiscard]] bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, float distance);
     [[nodiscard]] sf::Vector2f GenerateRandomPointForSpawning(const World &world,
                                                               RandomNumberGenerator &randomNumberGenerator);
+    void UpdateWorld(sf::Time &remainingSimulationTime, LogicEntity &player, World &world,
+                     RandomNumberGenerator &randomNumberGenerator);
 } // namespace ij

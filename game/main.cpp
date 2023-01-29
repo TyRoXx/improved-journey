@@ -93,13 +93,11 @@ namespace ij
         return sf::Vector2i(RoundDown<sf::Int32>(position.x / TileSize), RoundDown<sf::Int32>(position.y / TileSize));
     }
 
-    constexpr unsigned frameRate = 60;
-
     struct Debugging
     {
         size_t enemiesDrawnLastFrame = 0;
         size_t tilesDrawnLastFrame = 0;
-        std::array<float, 5 *frameRate> FrameTimes = {};
+        std::array<float, 5 *FrameRate> FrameTimes = {};
         size_t NextFrameTime = 0;
         bool IsZoomedOut = false;
     };
@@ -273,28 +271,13 @@ namespace ij
             }
         }
     }
-
-    void UpdateWorld(sf::Time &remainingSimulationTime, LogicEntity &player, World &world,
-                     RandomNumberGenerator &randomNumberGenerator)
-    {
-        const sf::Time simulationTimeStep = sf::milliseconds(AssertCast<sf::Int32>(1000 / frameRate));
-        while (remainingSimulationTime >= simulationTimeStep)
-        {
-            remainingSimulationTime -= simulationTimeStep;
-            updateLogic(player, player, world, simulationTimeStep, randomNumberGenerator);
-            for (Object &enemy : world.enemies)
-            {
-                updateLogic(enemy.Logic, player, world, simulationTimeStep, randomNumberGenerator);
-            }
-        }
-    }
 } // namespace ij
 
 int main()
 {
     using namespace ij;
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
-    window.setFramerateLimit(frameRate);
+    window.setFramerateLimit(FrameRate);
     if (!ImGui::SFML::Init(window))
     {
         std::cerr << "Could not initialize ImGui::SFML\n";

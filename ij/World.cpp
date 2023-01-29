@@ -93,3 +93,18 @@ sf::Vector2f ij::GenerateRandomPointForSpawning(const World &world, RandomNumber
     } while (!IsWalkable(position, DefaultEntityDimensions, world));
     return position;
 }
+
+void ij::UpdateWorld(sf::Time &remainingSimulationTime, LogicEntity &player, World &world,
+                     RandomNumberGenerator &randomNumberGenerator)
+{
+    const sf::Time simulationTimeStep = sf::milliseconds(AssertCast<sf::Int32>(1000 / FrameRate));
+    while (remainingSimulationTime >= simulationTimeStep)
+    {
+        remainingSimulationTime -= simulationTimeStep;
+        updateLogic(player, player, world, simulationTimeStep, randomNumberGenerator);
+        for (Object &enemy : world.enemies)
+        {
+            updateLogic(enemy.Logic, player, world, simulationTimeStep, randomNumberGenerator);
+        }
+    }
+}
