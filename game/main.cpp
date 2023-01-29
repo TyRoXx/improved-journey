@@ -215,6 +215,124 @@ namespace ij
         ImGui::Checkbox("Player/wall collision", &player.HasCollisionWithWalls);
         ImGui::End();
     }
+
+    void DrawWorld(sf::RenderWindow &window, Camera &camera, Input &input, size_t &tilesDrawnLastFrame,
+                   size_t &enemiesDrawnLastFrame, World &world, Object &player, const sf::Texture &grassTexture,
+                   const sf::Time timeSinceLastDraw)
+    {
+        const sf::Vector2i topLeft =
+            findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(0, 0)));
+        const sf::Vector2i bottomRight =
+            findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(window.getSize())));
+
+        tilesDrawnLastFrame = 0;
+        for (size_t y = AssertCast<size_t>((std::max)(0, topLeft.y)),
+                    yStop = AssertCast<size_t>(
+                        (std::min<ptrdiff_t>)(bottomRight.y, AssertCast<ptrdiff_t>(world.map.GetHeight() - 1)));
+             y <= yStop; ++y)
+        {
+            for (size_t x = AssertCast<size_t>((std::max)(0, topLeft.x)),
+                        xStop = AssertCast<size_t>(
+                            (std::min<ptrdiff_t>)(bottomRight.x, AssertCast<ptrdiff_t>(world.map.Width - 1)));
+                 x <= xStop; ++x)
+            {
+                const int tile = world.map.GetTileAt(x, y);
+                if (tile == NoTile)
+                {
+                    continue;
+                }
+                sf::Sprite grass(grassTexture);
+                grass.setTextureRect(sf::IntRect(tile * TileSize, 160, TileSize, TileSize));
+                grass.setPosition(sf::Vector2f(AssertCast<float>(x) * TileSize, AssertCast<float>(y) * TileSize));
+                camera.draw(window, grass);
+                ++tilesDrawnLastFrame;
+            }
+        }
+
+        std::vector<const Object *> visibleEnemies;
+        std::vector<const sf::Sprite *> spritesToDrawInZOrder;
+
+        updateVisuals(player.Logic, player.Visuals, timeSinceLastDraw);
+        spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
+
+        enemiesDrawnLastFrame = 0;
+        for (Object &enemy : world.enemies)
+        {
+            updateVisuals(enemy.Logic, enemy.Visuals, timeSinceLastDraw);
+            if (camera.canSee(window, enemy.Visuals))
+            {
+                visibleEnemies.push_back(&enemy);
+                spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
+                ++enemiesDrawnLastFrame;
+            }
+        }
+
+        for (size_t i = 0; i < world.FloatingTexts.size();)
+        {
+            world.FloatingTexts[i].Update(timeSinceLastDraw);
+            if (world.FloatingTexts[i].HasExpired())
+            {
+                if ((i + 1) < world.FloatingTexts.size())
+                {
+                    world.FloatingTexts[i] = std::move(world.FloatingTexts.back());
+                }
+                world.FloatingTexts.pop_back();
+            }
+            else
+            {
+                ++i;
+            }
+        }
+
+        std::ranges::sort(
+            spritesToDrawInZOrder, [](const sf::Sprite *const left, const sf::Sprite *const right) -> bool {
+                return (bottomOfSprite(*left) < bottomOfSprite(*right));
+            });
+        for (const sf::Sprite *const sprite : spritesToDrawInZOrder)
+        {
+            camera.draw(window, *sprite);
+        }
+
+        for (FloatingText &floatingText : world.FloatingTexts)
+        {
+            camera.draw(window, *floatingText.Text);
+        }
+
+        drawHealthBar(window, camera, player);
+        for (const Object *const enemy : visibleEnemies)
+        {
+            drawHealthBar(window, camera, *enemy);
+        }
+
+        {
+            sf::CircleShape circle(1);
+            circle.setOutlineColor(sf::Color(0, 255, 0));
+            circle.setFillColor(sf::Color(0, 255, 0));
+            circle.setPosition(player.Logic.Position);
+            camera.draw(window, circle);
+        }
+        for (const Object *const enemy : visibleEnemies)
+        {
+            {
+                sf::CircleShape circle(1);
+                circle.setOutlineColor(sf::Color(255, 0, 0));
+                circle.setFillColor(sf::Color(255, 0, 0));
+                circle.setPosition(enemy->Logic.Position);
+                camera.draw(window, circle);
+            }
+
+            if (enemy == input.selectedEnemy)
+            {
+                sf::RectangleShape rect;
+                rect.setPosition(enemy->Logic.Position - enemy->Visuals.GetOffset());
+                rect.setSize(sf::Vector2f(enemy->Visuals.SpriteSize));
+                rect.setFillColor(sf::Color::Transparent);
+                rect.setOutlineColor(sf::Color::White);
+                rect.setOutlineThickness(1);
+                camera.draw(window, rect);
+            }
+        }
+    }
 } // namespace ij
 
 int main()
@@ -339,118 +457,8 @@ int main()
 
         camera.Center = player.Logic.Position;
 
-        const sf::Vector2i topLeft =
-            findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(0, 0)));
-        const sf::Vector2i bottomRight =
-            findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(window.getSize())));
-
-        tilesDrawnLastFrame = 0;
-        for (size_t y = AssertCast<size_t>((std::max)(0, topLeft.y)),
-                    yStop = AssertCast<size_t>(
-                        (std::min<ptrdiff_t>)(bottomRight.y, AssertCast<ptrdiff_t>(map.GetHeight() - 1)));
-             y <= yStop; ++y)
-        {
-            for (size_t x = AssertCast<size_t>((std::max)(0, topLeft.x)),
-                        xStop = AssertCast<size_t>(
-                            (std::min<ptrdiff_t>)(bottomRight.x, AssertCast<ptrdiff_t>(map.Width - 1)));
-                 x <= xStop; ++x)
-            {
-                const int tile = map.GetTileAt(x, y);
-                if (tile == NoTile)
-                {
-                    continue;
-                }
-                sf::Sprite grass(grassTexture);
-                grass.setTextureRect(sf::IntRect(tile * TileSize, 160, TileSize, TileSize));
-                grass.setPosition(sf::Vector2f(AssertCast<float>(x) * TileSize, AssertCast<float>(y) * TileSize));
-                camera.draw(window, grass);
-                ++tilesDrawnLastFrame;
-            }
-        }
-
-        std::vector<const Object *> visibleEnemies;
-        std::vector<const sf::Sprite *> spritesToDrawInZOrder;
-
-        updateVisuals(player.Logic, player.Visuals, simulationTimeStep);
-        spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
-
-        enemiesDrawnLastFrame = 0;
-        for (Object &enemy : world.enemies)
-        {
-            updateVisuals(enemy.Logic, enemy.Visuals, simulationTimeStep);
-            if (camera.canSee(window, enemy.Visuals))
-            {
-                visibleEnemies.push_back(&enemy);
-                spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
-                ++enemiesDrawnLastFrame;
-            }
-        }
-
-        for (size_t i = 0; i < world.FloatingTexts.size();)
-        {
-            world.FloatingTexts[i].Update(deltaTime);
-            if (world.FloatingTexts[i].HasExpired())
-            {
-                if ((i + 1) < world.FloatingTexts.size())
-                {
-                    world.FloatingTexts[i] = std::move(world.FloatingTexts.back());
-                }
-                world.FloatingTexts.pop_back();
-            }
-            else
-            {
-                ++i;
-            }
-        }
-
-        std::ranges::sort(
-            spritesToDrawInZOrder, [](const sf::Sprite *const left, const sf::Sprite *const right) -> bool {
-                return (bottomOfSprite(*left) < bottomOfSprite(*right));
-            });
-        for (const sf::Sprite *const sprite : spritesToDrawInZOrder)
-        {
-            camera.draw(window, *sprite);
-        }
-
-        for (FloatingText &floatingText : world.FloatingTexts)
-        {
-            camera.draw(window, *floatingText.Text);
-        }
-
-        drawHealthBar(window, camera, player);
-        for (const Object *const enemy : visibleEnemies)
-        {
-            drawHealthBar(window, camera, *enemy);
-        }
-
-        {
-            sf::CircleShape circle(1);
-            circle.setOutlineColor(sf::Color(0, 255, 0));
-            circle.setFillColor(sf::Color(0, 255, 0));
-            circle.setPosition(player.Logic.Position);
-            camera.draw(window, circle);
-        }
-        for (const Object *const enemy : visibleEnemies)
-        {
-            {
-                sf::CircleShape circle(1);
-                circle.setOutlineColor(sf::Color(255, 0, 0));
-                circle.setFillColor(sf::Color(255, 0, 0));
-                circle.setPosition(enemy->Logic.Position);
-                camera.draw(window, circle);
-            }
-
-            if (enemy == input.selectedEnemy)
-            {
-                sf::RectangleShape rect;
-                rect.setPosition(enemy->Logic.Position - enemy->Visuals.GetOffset());
-                rect.setSize(sf::Vector2f(enemy->Visuals.SpriteSize));
-                rect.setFillColor(sf::Color::Transparent);
-                rect.setOutlineColor(sf::Color::White);
-                rect.setOutlineThickness(1);
-                camera.draw(window, rect);
-            }
-        }
+        DrawWorld(
+            window, camera, input, tilesDrawnLastFrame, enemiesDrawnLastFrame, world, player, grassTexture, deltaTime);
 
         ImGui::SFML::Render(window);
         window.display();
