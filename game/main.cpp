@@ -528,6 +528,7 @@ int main()
         window.clear();
 
         camera.Center = player.Logic.Position;
+        window.setView(sf::View(camera.Center, sf::Vector2f(window.getSize())));
 
         DrawWorld(window, camera, input, debugging, world, player, grassTexture, deltaTime);
 

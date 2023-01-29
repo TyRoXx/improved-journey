@@ -2,34 +2,22 @@
 
 void ij::Camera::draw(sf::RenderWindow &window, const sf::Sprite &sprite) const
 {
-    sf::Sprite moved(sprite);
-    moved.move(-Center);
-    moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-    window.draw(moved);
+    window.draw(sprite);
 }
 
 void ij::Camera::draw(sf::RenderWindow &window, const sf::CircleShape &shape) const
 {
-    sf::CircleShape moved(shape);
-    moved.move(-Center);
-    moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-    window.draw(moved);
+    window.draw(shape);
 }
 
 void ij::Camera::draw(sf::RenderWindow &window, const sf::RectangleShape &shape) const
 {
-    sf::RectangleShape moved(shape);
-    moved.move(-Center);
-    moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-    window.draw(moved);
+    window.draw(shape);
 }
 
 void ij::Camera::draw(sf::RenderWindow &window, const sf::Text &text) const
 {
-    sf::Text moved(text);
-    moved.move(-Center);
-    moved.move(sf::Vector2f(window.getSize()) * 0.5f);
-    window.draw(moved);
+    window.draw(text);
 }
 
 sf::Vector2f ij::Camera::getWorldFromScreenCoordinates(const sf::RenderWindow &window, const sf::Vector2i &point) const
