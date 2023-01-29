@@ -333,6 +333,21 @@ namespace ij
             }
         }
     }
+
+    void UpdateWorld(sf::Time &remainingSimulationTime, LogicEntity &player, World &world,
+                     RandomNumberGenerator &randomNumberGenerator, const unsigned frameRate)
+    {
+        const sf::Time simulationTimeStep = sf::milliseconds(AssertCast<sf::Int32>(1000 / frameRate));
+        while (remainingSimulationTime >= simulationTimeStep)
+        {
+            remainingSimulationTime -= simulationTimeStep;
+            updateLogic(player, player, world, simulationTimeStep, randomNumberGenerator);
+            for (Object &enemy : world.enemies)
+            {
+                updateLogic(enemy.Logic, player, world, simulationTimeStep, randomNumberGenerator);
+            }
+        }
+    }
 } // namespace ij
 
 int main()
@@ -440,16 +455,7 @@ int main()
 
         // fix the time step to make physics and NPC behaviour independent from the frame rate
         remainingSimulationTime += deltaTime;
-        const sf::Time simulationTimeStep = sf::milliseconds(1000 / frameRate);
-        while (remainingSimulationTime >= simulationTimeStep)
-        {
-            remainingSimulationTime -= simulationTimeStep;
-            updateLogic(player.Logic, player.Logic, world, simulationTimeStep, randomNumberGenerator);
-            for (Object &enemy : world.enemies)
-            {
-                updateLogic(enemy.Logic, player.Logic, world, simulationTimeStep, randomNumberGenerator);
-            }
-        }
+        UpdateWorld(remainingSimulationTime, player.Logic, world, randomNumberGenerator, frameRate);
 
         UpdateUserInterface(window, deltaTime, player.Logic, world, input, enemiesDrawnLastFrame, tilesDrawnLastFrame);
 
