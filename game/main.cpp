@@ -165,6 +165,56 @@ namespace ij
             }
         }
     };
+
+    void UpdateUserInterface(sf::RenderWindow &window, const sf::Time deltaTime, LogicEntity &player,
+                             const World &world, const Input &input, const size_t enemiesDrawnLastFrame,
+                             const size_t tilesDrawnLastFrame)
+    {
+        ImGui::SFML::Update(window, deltaTime);
+        ImGui::Begin("Character");
+        {
+            ImGui::Text("Health");
+            ImGui::SameLine();
+            ImGui::ProgressBar(AssertCast<float>(player.GetCurrentHealth()) /
+                               AssertCast<float>(player.GetMaximumHealth()));
+        }
+        ImGui::End();
+
+        if (Object *const selectedEnemy = input.selectedEnemy)
+        {
+            ImGui::Begin("Enemy");
+            {
+                ImGui::Text("Health");
+                ImGui::SameLine();
+                ImGui::ProgressBar(AssertCast<float>(selectedEnemy->Logic.GetCurrentHealth()) /
+                                   AssertCast<float>(selectedEnemy->Logic.GetMaximumHealth()));
+                ImGui::BeginDisabled();
+                ImGui::Checkbox("Bumped", &selectedEnemy->Logic.HasBumpedIntoWall);
+                ImGui::EndDisabled();
+                ImGui::LabelText("Animation", "%s", GetObjectAnimationName(selectedEnemy->Visuals.Animation));
+                ImGui::LabelText(
+                    "Direction", "%f %f", selectedEnemy->Logic.Direction.x, selectedEnemy->Logic.Direction.y);
+                if (const Bot *const bot = dynamic_cast<const Bot *>(selectedEnemy->Logic.Behavior.get()))
+                {
+                    ImGui::LabelText("State", "%s", Bot::GetStateName(bot->GetState()));
+                    ImGui::BeginDisabled();
+                    bool hasTarget = (bot->GetTarget() != nullptr);
+                    ImGui::Checkbox("Has target", &hasTarget);
+                    ImGui::EndDisabled();
+                }
+            }
+            ImGui::End();
+        }
+
+        ImGui::Begin("Debug");
+        ImGui::LabelText("Enemies in the world", "%zu", world.enemies.size());
+        ImGui::LabelText("Enemies drawn", "%zu", enemiesDrawnLastFrame);
+        ImGui::LabelText("Tiles in the world", "%zu", world.map.Tiles.size());
+        ImGui::LabelText("Tiles drawn", "%zu", tilesDrawnLastFrame);
+        ImGui::LabelText("Floating texts in the world", "%zu", world.FloatingTexts.size());
+        ImGui::Checkbox("Player/wall collision", &player.HasCollisionWithWalls);
+        ImGui::End();
+    }
 } // namespace ij
 
 int main()
@@ -283,50 +333,7 @@ int main()
             }
         }
 
-        ImGui::SFML::Update(window, deltaTime);
-        ImGui::Begin("Character");
-        {
-            ImGui::Text("Health");
-            ImGui::SameLine();
-            ImGui::ProgressBar(AssertCast<float>(player.Logic.GetCurrentHealth()) /
-                               AssertCast<float>(player.Logic.GetMaximumHealth()));
-        }
-        ImGui::End();
-
-        if (Object *const selectedEnemy = input.selectedEnemy)
-        {
-            ImGui::Begin("Enemy");
-            {
-                ImGui::Text("Health");
-                ImGui::SameLine();
-                ImGui::ProgressBar(AssertCast<float>(selectedEnemy->Logic.GetCurrentHealth()) /
-                                   AssertCast<float>(selectedEnemy->Logic.GetMaximumHealth()));
-                ImGui::BeginDisabled();
-                ImGui::Checkbox("Bumped", &selectedEnemy->Logic.HasBumpedIntoWall);
-                ImGui::EndDisabled();
-                ImGui::LabelText("Animation", "%s", GetObjectAnimationName(selectedEnemy->Visuals.Animation));
-                ImGui::LabelText(
-                    "Direction", "%f %f", selectedEnemy->Logic.Direction.x, selectedEnemy->Logic.Direction.y);
-                if (const Bot *const bot = dynamic_cast<const Bot *>(selectedEnemy->Logic.Behavior.get()))
-                {
-                    ImGui::LabelText("State", "%s", Bot::GetStateName(bot->GetState()));
-                    ImGui::BeginDisabled();
-                    bool hasTarget = (bot->GetTarget() != nullptr);
-                    ImGui::Checkbox("Has target", &hasTarget);
-                    ImGui::EndDisabled();
-                }
-            }
-            ImGui::End();
-        }
-
-        ImGui::Begin("Debug");
-        ImGui::LabelText("Enemies in the world", "%zu", world.enemies.size());
-        ImGui::LabelText("Enemies drawn", "%zu", enemiesDrawnLastFrame);
-        ImGui::LabelText("Tiles in the world", "%zu", map.Tiles.size());
-        ImGui::LabelText("Tiles drawn", "%zu", tilesDrawnLastFrame);
-        ImGui::LabelText("Floating texts in the world", "%zu", world.FloatingTexts.size());
-        ImGui::Checkbox("Player/wall collision", &player.Logic.HasCollisionWithWalls);
-        ImGui::End();
+        UpdateUserInterface(window, deltaTime, player.Logic, world, input, enemiesDrawnLastFrame, tilesDrawnLastFrame);
 
         window.clear();
 
