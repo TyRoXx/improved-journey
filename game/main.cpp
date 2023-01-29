@@ -366,24 +366,32 @@ namespace ij
         }
     };
 
-    void SpawnEnemies(World &world, const size_t numberOfEnemies, const Map &map,
-                      const std::vector<EnemyTemplate> &enemies, RandomNumberGenerator &randomNumberGenerator)
+    sf::Vector2f GenerateRandomPointForSpawning(const World &world, RandomNumberGenerator &randomNumberGenerator)
+    {
+        sf::Vector2f position;
+        size_t attempt = 0;
+        do
+        {
+            ++attempt;
+            assert(attempt < 100);
+            position.x = AssertCast<float>(
+                TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(world.map.Width - 1)) +
+                (TileSize / 2));
+            position.y = AssertCast<float>(
+                TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(world.map.GetHeight() - 1)) +
+                (TileSize / 2));
+        } while (!IsWalkable(position, DefaultEntityDimensions, world));
+        return position;
+    }
+
+    void SpawnEnemies(World &world, const size_t numberOfEnemies, const std::vector<EnemyTemplate> &enemies,
+                      RandomNumberGenerator &randomNumberGenerator)
     {
         for (const EnemyTemplate &enemyTemplate : enemies)
         {
             for (size_t k = 0; k < (numberOfEnemies / enemies.size()); ++k)
             {
-                sf::Vector2f position;
-                do
-                {
-                    position.x = AssertCast<float>(
-                        TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(map.Width - 1)) +
-                        (TileSize / 2));
-                    position.y = AssertCast<float>(
-                        TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(map.GetHeight() - 1)) +
-                        (TileSize / 2));
-                } while (!IsWalkable(position, DefaultEntityDimensions, world));
-
+                const sf::Vector2f position = GenerateRandomPointForSpawning(world, randomNumberGenerator);
                 const sf::Vector2f direction =
                     DirectionToVector(AssertCast<Direction>(randomNumberGenerator.GenerateInt32(0, 3)));
                 world.enemies.emplace_back(
@@ -473,18 +481,19 @@ int main()
     }
 
     Input input;
-    Object player(VisualEntity(sf::Sprite(wolfsheet1Texture), sf::Vector2i(64, 64), 0, 0, CutWolfTexture,
-                               ObjectAnimation::Standing),
-                  LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
-                              sf::Vector2f(400, 400), sf::Vector2f(), true, false, 100, 100, ObjectActivity::Standing));
-
     StandardRandomNumberGenerator randomNumberGenerator;
     const Map map = GenerateRandomMap(randomNumberGenerator);
 
     constexpr float enemiesPerTile = 0.02f;
     const size_t numberOfEnemies = static_cast<size_t>(AssertCast<float>(map.Tiles.size()) * enemiesPerTile);
     World world(font, map);
-    SpawnEnemies(world, numberOfEnemies, map, *maybeEnemies, randomNumberGenerator);
+    SpawnEnemies(world, numberOfEnemies, *maybeEnemies, randomNumberGenerator);
+
+    Object player(VisualEntity(sf::Sprite(wolfsheet1Texture), sf::Vector2i(64, 64), 0, 0, CutWolfTexture,
+                               ObjectAnimation::Standing),
+                  LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
+                              GenerateRandomPointForSpawning(world, randomNumberGenerator), sf::Vector2f(), true, false,
+                              100, 100, ObjectActivity::Standing));
 
     Camera camera{player.Logic.Position};
     size_t tilesDrawnLastFrame = 0;
