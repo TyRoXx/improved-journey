@@ -174,10 +174,11 @@ namespace ij
         size_t tilesDrawnLastFrame = 0;
         std::array<float, 5 *frameRate> FrameTimes = {};
         size_t NextFrameTime = 0;
+        bool IsZoomedOut = false;
     };
 
     void UpdateUserInterface(sf::RenderWindow &window, const sf::Time deltaTime, LogicEntity &player,
-                             const World &world, const Input &input, const Debugging &debugging)
+                             const World &world, const Input &input, Debugging &debugging)
     {
         ImGui::SFML::Update(window, deltaTime);
         ImGui::Begin("Character");
@@ -225,6 +226,7 @@ namespace ij
         ImGui::PlotHistogram("Frame times (ms)", debugging.FrameTimes.data(),
                              AssertCast<int>(debugging.FrameTimes.size()), AssertCast<int>(debugging.NextFrameTime),
                              nullptr, 0.0f, 100.0f, ImVec2(300, 100));
+        ImGui::Checkbox("Zoom out", &debugging.IsZoomedOut);
         ImGui::End();
     }
 
@@ -528,9 +530,25 @@ int main()
         window.clear();
 
         camera.Center = player.Logic.Position;
-        window.setView(sf::View(camera.Center, sf::Vector2f(window.getSize())));
+        sf::Vector2f viewSize = sf::Vector2f(window.getSize());
+        if (debugging.IsZoomedOut)
+        {
+            viewSize *= 2.0f;
+        }
+        window.setView(sf::View(camera.Center, viewSize));
 
         DrawWorld(window, camera, input, debugging, world, player, grassTexture, deltaTime);
+
+        if (debugging.IsZoomedOut)
+        {
+            sf::RectangleShape cameraBorder;
+            cameraBorder.setPosition(camera.Center - (sf::Vector2f(window.getSize()) * 0.5f));
+            cameraBorder.setSize(sf::Vector2f(window.getSize()));
+            cameraBorder.setOutlineColor(sf::Color::Red);
+            cameraBorder.setOutlineThickness(2);
+            cameraBorder.setFillColor(sf::Color::Transparent);
+            window.draw(cameraBorder);
+        }
 
         ImGui::SFML::Render(window);
         window.display();
