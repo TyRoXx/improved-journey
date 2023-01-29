@@ -166,9 +166,14 @@ namespace ij
         }
     };
 
+    struct Debugging
+    {
+        size_t enemiesDrawnLastFrame = 0;
+        size_t tilesDrawnLastFrame = 0;
+    };
+
     void UpdateUserInterface(sf::RenderWindow &window, const sf::Time deltaTime, LogicEntity &player,
-                             const World &world, const Input &input, const size_t enemiesDrawnLastFrame,
-                             const size_t tilesDrawnLastFrame)
+                             const World &world, const Input &input, const Debugging &debugging)
     {
         ImGui::SFML::Update(window, deltaTime);
         ImGui::Begin("Character");
@@ -208,24 +213,23 @@ namespace ij
 
         ImGui::Begin("Debug");
         ImGui::LabelText("Enemies in the world", "%zu", world.enemies.size());
-        ImGui::LabelText("Enemies drawn", "%zu", enemiesDrawnLastFrame);
+        ImGui::LabelText("Enemies drawn", "%zu", debugging.enemiesDrawnLastFrame);
         ImGui::LabelText("Tiles in the world", "%zu", world.map.Tiles.size());
-        ImGui::LabelText("Tiles drawn", "%zu", tilesDrawnLastFrame);
+        ImGui::LabelText("Tiles drawn", "%zu", debugging.tilesDrawnLastFrame);
         ImGui::LabelText("Floating texts in the world", "%zu", world.FloatingTexts.size());
         ImGui::Checkbox("Player/wall collision", &player.HasCollisionWithWalls);
         ImGui::End();
     }
 
-    void DrawWorld(sf::RenderWindow &window, Camera &camera, Input &input, size_t &tilesDrawnLastFrame,
-                   size_t &enemiesDrawnLastFrame, World &world, Object &player, const sf::Texture &grassTexture,
-                   const sf::Time timeSinceLastDraw)
+    void DrawWorld(sf::RenderWindow &window, Camera &camera, Input &input, Debugging &debugging, World &world,
+                   Object &player, const sf::Texture &grassTexture, const sf::Time timeSinceLastDraw)
     {
         const sf::Vector2i topLeft =
             findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(0, 0)));
         const sf::Vector2i bottomRight =
             findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(window.getSize())));
 
-        tilesDrawnLastFrame = 0;
+        debugging.tilesDrawnLastFrame = 0;
         for (size_t y = AssertCast<size_t>((std::max)(0, topLeft.y)),
                     yStop = AssertCast<size_t>(
                         (std::min<ptrdiff_t>)(bottomRight.y, AssertCast<ptrdiff_t>(world.map.GetHeight() - 1)));
@@ -245,7 +249,7 @@ namespace ij
                 grass.setTextureRect(sf::IntRect(tile * TileSize, 160, TileSize, TileSize));
                 grass.setPosition(sf::Vector2f(AssertCast<float>(x) * TileSize, AssertCast<float>(y) * TileSize));
                 camera.draw(window, grass);
-                ++tilesDrawnLastFrame;
+                ++debugging.tilesDrawnLastFrame;
             }
         }
 
@@ -255,7 +259,7 @@ namespace ij
         updateVisuals(player.Logic, player.Visuals, timeSinceLastDraw);
         spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
 
-        enemiesDrawnLastFrame = 0;
+        debugging.enemiesDrawnLastFrame = 0;
         for (Object &enemy : world.enemies)
         {
             updateVisuals(enemy.Logic, enemy.Visuals, timeSinceLastDraw);
@@ -263,7 +267,7 @@ namespace ij
             {
                 visibleEnemies.push_back(&enemy);
                 spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
-                ++enemiesDrawnLastFrame;
+                ++debugging.enemiesDrawnLastFrame;
             }
         }
 
@@ -498,9 +502,7 @@ int main()
                               100, 100, ObjectActivity::Standing));
 
     Camera camera{player.Logic.Position};
-    size_t tilesDrawnLastFrame = 0;
-    size_t enemiesDrawnLastFrame = 0;
-
+    Debugging debugging;
     sf::Clock deltaClock;
     sf::Time remainingSimulationTime;
     while (window.isOpen())
@@ -513,14 +515,13 @@ int main()
         remainingSimulationTime += deltaTime;
         UpdateWorld(remainingSimulationTime, player.Logic, world, randomNumberGenerator, frameRate);
 
-        UpdateUserInterface(window, deltaTime, player.Logic, world, input, enemiesDrawnLastFrame, tilesDrawnLastFrame);
+        UpdateUserInterface(window, deltaTime, player.Logic, world, input, debugging);
 
         window.clear();
 
         camera.Center = player.Logic.Position;
 
-        DrawWorld(
-            window, camera, input, tilesDrawnLastFrame, enemiesDrawnLastFrame, world, player, grassTexture, deltaTime);
+        DrawWorld(window, camera, input, debugging, world, player, grassTexture, deltaTime);
 
         ImGui::SFML::Render(window);
         window.display();
