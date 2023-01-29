@@ -75,3 +75,21 @@ bool ij::isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second,
     const float yDiff = (first.y - second.y);
     return (distance * distance) >= ((xDiff * xDiff) + (yDiff * yDiff));
 }
+
+sf::Vector2f ij::GenerateRandomPointForSpawning(const World &world, RandomNumberGenerator &randomNumberGenerator)
+{
+    sf::Vector2f position;
+    size_t attempt = 0;
+    do
+    {
+        ++attempt;
+        assert(attempt < 100);
+        position.x = AssertCast<float>(
+            TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(world.map.Width - 1)) +
+            (TileSize / 2));
+        position.y = AssertCast<float>(
+            TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(world.map.GetHeight() - 1)) +
+            (TileSize / 2));
+    } while (!IsWalkable(position, DefaultEntityDimensions, world));
+    return position;
+}
