@@ -411,7 +411,8 @@ namespace ij
             "pumpking", "slime", "small_worm", "snake"};
         for (size_t i = 0; i < enemyFileNames.size(); ++i)
         {
-            const auto enemyFile = (assets / "lpc-monsters" / (std::string(enemyFileNames[i]) + ".png"));
+            const std::filesystem::path enemyFile =
+                (assets / "lpc-monsters" / (std::string(enemyFileNames[i]) + ".png"));
             if (!enemyTextures[i].loadFromFile(enemyFile.string()))
             {
                 return std::nullopt;
@@ -445,7 +446,8 @@ int main()
         return 1;
     }
 
-    const auto assets = std::filesystem::current_path().parent_path().parent_path() / "improved-journey" / "assets";
+    const std::filesystem::path assets =
+        std::filesystem::current_path().parent_path().parent_path() / "improved-journey" / "assets";
     loadAllSprites(assets);
 
     sf::Font font;
@@ -455,7 +457,7 @@ int main()
         return 1;
     }
 
-    const auto wolfsheet1File = (assets / "LPC Wolfman" / "Male" / "Gray" / "Universal.png");
+    const std::filesystem::path wolfsheet1File = (assets / "LPC Wolfman" / "Male" / "Gray" / "Universal.png");
     assert(std::filesystem::exists(wolfsheet1File));
 
     sf::Texture wolfsheet1Texture;
@@ -465,7 +467,7 @@ int main()
         return 1;
     }
 
-    const auto grassFile = (assets / "LPC Base Assets" / "tiles" / "grass.png");
+    const std::filesystem::path grassFile = (assets / "LPC Base Assets" / "tiles" / "grass.png");
     sf::Texture grassTexture;
     if (!grassTexture.loadFromFile(grassFile.string()))
     {
