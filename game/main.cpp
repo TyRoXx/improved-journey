@@ -166,10 +166,14 @@ namespace ij
         }
     };
 
+    constexpr unsigned frameRate = 60;
+
     struct Debugging
     {
         size_t enemiesDrawnLastFrame = 0;
         size_t tilesDrawnLastFrame = 0;
+        std::array<float, 5 *frameRate> FrameTimes = {};
+        size_t NextFrameTime = 0;
     };
 
     void UpdateUserInterface(sf::RenderWindow &window, const sf::Time deltaTime, LogicEntity &player,
@@ -218,6 +222,9 @@ namespace ij
         ImGui::LabelText("Tiles drawn", "%zu", debugging.tilesDrawnLastFrame);
         ImGui::LabelText("Floating texts in the world", "%zu", world.FloatingTexts.size());
         ImGui::Checkbox("Player/wall collision", &player.HasCollisionWithWalls);
+        ImGui::PlotHistogram("Frame times (ms)", debugging.FrameTimes.data(),
+                             AssertCast<int>(debugging.FrameTimes.size()), AssertCast<int>(debugging.NextFrameTime),
+                             nullptr, 0.0f, 100.0f, ImVec2(300, 100));
         ImGui::End();
     }
 
@@ -339,7 +346,7 @@ namespace ij
     }
 
     void UpdateWorld(sf::Time &remainingSimulationTime, LogicEntity &player, World &world,
-                     RandomNumberGenerator &randomNumberGenerator, const unsigned frameRate)
+                     RandomNumberGenerator &randomNumberGenerator)
     {
         const sf::Time simulationTimeStep = sf::milliseconds(AssertCast<sf::Int32>(1000 / frameRate));
         while (remainingSimulationTime >= simulationTimeStep)
@@ -442,7 +449,6 @@ int main()
 {
     using namespace ij;
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
-    constexpr unsigned frameRate = 60;
     window.setFramerateLimit(frameRate);
     if (!ImGui::SFML::Init(window))
     {
@@ -510,10 +516,12 @@ int main()
         input.ProcessEvents(window, camera, world);
 
         const sf::Time deltaTime = deltaClock.restart();
+        debugging.FrameTimes[debugging.NextFrameTime] = AssertCast<float>(deltaTime.asMilliseconds());
+        debugging.NextFrameTime = (debugging.NextFrameTime + 1) % debugging.FrameTimes.size();
 
         // fix the time step to make physics and NPC behaviour independent from the frame rate
         remainingSimulationTime += deltaTime;
-        UpdateWorld(remainingSimulationTime, player.Logic, world, randomNumberGenerator, frameRate);
+        UpdateWorld(remainingSimulationTime, player.Logic, world, randomNumberGenerator);
 
         UpdateUserInterface(window, deltaTime, player.Logic, world, input, debugging);
 
