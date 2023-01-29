@@ -9,11 +9,13 @@ namespace ij
     {
         sf::Sprite Sprite;
         sf::Vector2i SpriteSize;
-        sf::Int32 VerticalOffset = 0;
-        sf::Int32 AnimationTime = 0;
-        TextureCutter *Cutter = nullptr;
-        ObjectAnimation Animation = ObjectAnimation::Standing;
+        sf::Int32 VerticalOffset;
+        sf::Int32 AnimationTime;
+        TextureCutter *Cutter;
+        ObjectAnimation Animation;
 
+        VisualEntity(const sf::Sprite &sprite, const sf::Vector2i &spriteSize, sf::Int32 verticalOffset,
+                     sf::Int32 animationTime, TextureCutter *cutter, ObjectAnimation animation);
         sf::Vector2f GetOffset() const;
     };
 

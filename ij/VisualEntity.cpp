@@ -1,5 +1,16 @@
 #include "VisualEntity.h"
 
+ij::VisualEntity::VisualEntity(const sf::Sprite &sprite, const sf::Vector2i &spriteSize, sf::Int32 verticalOffset,
+                               sf::Int32 animationTime, TextureCutter *cutter, ObjectAnimation animation)
+    : Sprite(sprite)
+    , SpriteSize(spriteSize)
+    , VerticalOffset(verticalOffset)
+    , AnimationTime(animationTime)
+    , Cutter(cutter)
+    , Animation(animation)
+{
+}
+
 sf::Vector2f ij::VisualEntity::GetOffset() const
 {
     return sf::Vector2f(AssertCast<float>(SpriteSize.x / 2), AssertCast<float>(SpriteSize.y)) -

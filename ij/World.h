@@ -12,6 +12,12 @@ namespace ij
     {
         VisualEntity Visuals;
         LogicEntity Logic;
+
+        Object(VisualEntity visuals, LogicEntity logic)
+            : Visuals(std::move(visuals))
+            , Logic(std::move(logic))
+        {
+        }
     };
 
     struct World final

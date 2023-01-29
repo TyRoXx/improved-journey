@@ -35,6 +35,20 @@ namespace ij
 
     struct LogicEntity
     {
+        LogicEntity(std::unique_ptr<ObjectBehavior> behavior, const sf::Vector2f &position,
+                    const sf::Vector2f &direction, bool hasCollisionWithWalls, bool hasBumpedIntoWall,
+                    Health currentHealth, Health maximumHealth, ObjectActivity activity)
+            : Behavior(move(behavior))
+            , Position(position)
+            , Direction(direction)
+            , HasCollisionWithWalls(hasCollisionWithWalls)
+            , HasBumpedIntoWall(hasBumpedIntoWall)
+            , currentHealth(currentHealth)
+            , maximumHealth(maximumHealth)
+            , Activity(activity)
+        {
+        }
+
         ObjectActivity GetActivity() const
         {
             return Activity;

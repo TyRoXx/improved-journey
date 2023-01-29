@@ -373,23 +373,24 @@ namespace ij
         {
             for (size_t k = 0; k < (numberOfEnemies / enemies.size()); ++k)
             {
-                Object &enemy = world.enemies.emplace_back();
-                enemy.Visuals.Sprite.setTexture(enemyTemplate.Texture);
-                enemy.Visuals.Cutter = enemyTemplate.Cutter;
-                enemy.Visuals.SpriteSize = enemyTemplate.Size;
-                enemy.Visuals.VerticalOffset = enemyTemplate.VerticalOffset;
+                sf::Vector2f position;
                 do
                 {
-                    enemy.Logic.Position.x = AssertCast<float>(
+                    position.x = AssertCast<float>(
                         TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(map.Width - 1)) +
                         (TileSize / 2));
-                    enemy.Logic.Position.y = AssertCast<float>(
+                    position.y = AssertCast<float>(
                         TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(map.GetHeight() - 1)) +
                         (TileSize / 2));
-                } while (!IsWalkable(enemy.Logic.Position, DefaultEntityDimensions, world));
-                enemy.Logic.Direction =
+                } while (!IsWalkable(position, DefaultEntityDimensions, world));
+
+                const sf::Vector2f direction =
                     DirectionToVector(AssertCast<Direction>(randomNumberGenerator.GenerateInt32(0, 3)));
-                enemy.Logic.Behavior = std::make_unique<Bot>();
+                world.enemies.emplace_back(
+                    VisualEntity(sf::Sprite(enemyTemplate.Texture), enemyTemplate.Size, enemyTemplate.VerticalOffset, 0,
+                                 enemyTemplate.Cutter, ObjectAnimation::Standing),
+                    LogicEntity(
+                        std::make_unique<Bot>(), position, direction, true, false, 100, 100, ObjectActivity::Standing));
             }
         }
     }
@@ -472,12 +473,10 @@ int main()
     }
 
     Input input;
-    Object player;
-    player.Visuals.Sprite.setTexture(wolfsheet1Texture);
-    player.Visuals.Cutter = CutWolfTexture;
-    player.Visuals.SpriteSize = sf::Vector2i(64, 64);
-    player.Logic.Position = sf::Vector2f(400, 400);
-    player.Logic.Behavior = std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed);
+    Object player(VisualEntity(sf::Sprite(wolfsheet1Texture), sf::Vector2i(64, 64), 0, 0, CutWolfTexture,
+                               ObjectAnimation::Standing),
+                  LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
+                              sf::Vector2f(400, 400), sf::Vector2f(), true, false, 100, 100, ObjectActivity::Standing));
 
     StandardRandomNumberGenerator randomNumberGenerator;
     const Map map = GenerateRandomMap(randomNumberGenerator);
