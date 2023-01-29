@@ -29,9 +29,9 @@ void ij::PlayerCharacter::update(LogicEntity &object, LogicEntity &player, World
         if (isAttackPressed && !isDead(object))
         {
             object.SetActivity(ObjectActivity::Attacking);
-            for (Object &enemy : world.enemies)
+            for (Object *const enemy : FindEnemiesInCircle(world, object.Position, 100.0f))
             {
-                InflictDamage(enemy.Logic, world, 2, random);
+                InflictDamage(enemy->Logic, world, 2, random);
             }
         }
         else

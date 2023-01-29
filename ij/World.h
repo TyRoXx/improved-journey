@@ -27,5 +27,7 @@ namespace ij
     };
 
     [[nodiscard]] Object *FindEnemyByPosition(World &world, const sf::Vector2f &position);
+    [[nodiscard]] std::vector<Object *> FindEnemiesInCircle(World &world, const sf::Vector2f &center, float radius);
     void InflictDamage(LogicEntity &damaged, World &world, Health damage, RandomNumberGenerator &random);
+    bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, float distance);
 } // namespace ij

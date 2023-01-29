@@ -27,6 +27,19 @@ ij::World::World(const sf::Font &font, const Map &map)
     return nullptr;
 }
 
+std::vector<ij::Object *> ij::FindEnemiesInCircle(World &world, const sf::Vector2f &center, float radius)
+{
+    std::vector<ij::Object *> results;
+    for (Object &enemy : world.enemies)
+    {
+        if (isWithinDistance(center, enemy.Logic.Position, radius))
+        {
+            results.emplace_back(&enemy);
+        }
+    }
+    return results;
+}
+
 namespace ij
 {
     template <class T>
@@ -54,4 +67,11 @@ void ij::InflictDamage(LogicEntity &damaged, World &world, const Health damage, 
         EraseRandomElementUnstable(world.FloatingTexts, random);
     }
     world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font, random);
+}
+
+bool ij::isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, const float distance)
+{
+    const float xDiff = (first.x - second.x);
+    const float yDiff = (first.y - second.y);
+    return (distance * distance) >= ((xDiff * xDiff) + (yDiff * yDiff));
 }

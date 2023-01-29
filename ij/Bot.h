@@ -6,8 +6,6 @@
 
 namespace ij
 {
-    bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, float distance);
-
     struct Bot final : ObjectBehavior
     {
         void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
