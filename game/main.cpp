@@ -430,7 +430,11 @@ int main()
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Improved Journey");
     const unsigned frameRate = 60;
     window.setFramerateLimit(frameRate);
-    ImGui::SFML::Init(window);
+    if (!ImGui::SFML::Init(window))
+    {
+        std::cerr << "Could not initialize ImGui::SFML\n";
+        return 1;
+    }
 
     const auto assets = std::filesystem::current_path().parent_path().parent_path() / "improved-journey" / "assets";
     loadAllSprites(assets);
@@ -438,6 +442,7 @@ int main()
     sf::Font font;
     if (!font.loadFromFile((assets / "Roboto-Font" / "Roboto-Light.ttf").string()))
     {
+        std::cerr << "Could not load font\n";
         return 1;
     }
 
@@ -447,6 +452,7 @@ int main()
     sf::Texture wolfsheet1Texture;
     if (!wolfsheet1Texture.loadFromFile(wolfsheet1File.string()))
     {
+        std::cerr << "Could not load player texture\n";
         return 1;
     }
 
@@ -454,12 +460,14 @@ int main()
     sf::Texture grassTexture;
     if (!grassTexture.loadFromFile(grassFile.string()))
     {
+        std::cerr << "Could not load grass texture\n";
         return 1;
     }
 
     const std::optional<std::vector<EnemyTemplate>> maybeEnemies = LoadEnemies(assets);
     if (!maybeEnemies)
     {
+        std::cerr << "Could not load enemies\n";
         return 1;
     }
 
