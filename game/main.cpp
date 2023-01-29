@@ -1,5 +1,3 @@
-#include "imgui-SFML.h"
-#include "imgui.h"
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -13,9 +11,9 @@
 #include <ij/AssertCast.h>
 #include <ij/Bot.h>
 #include <ij/Camera.h>
-#include <ij/Direction.h>
 #include <ij/EnemyTemplate.h>
 #include <ij/FloatingText.h>
+#include <ij/Input.h>
 #include <ij/LogicEntity.h>
 #include <ij/Map.h>
 #include <ij/ObjectAnimation.h>
@@ -24,6 +22,8 @@
 #include <ij/TextureCutter.h>
 #include <ij/VisualEntity.h>
 #include <ij/World.h>
+#include <imgui-SFML.h>
+#include <imgui.h>
 #include <iostream>
 
 namespace ij
@@ -92,80 +92,6 @@ namespace ij
     {
         return sf::Vector2i(RoundDown<sf::Int32>(position.x / TileSize), RoundDown<sf::Int32>(position.y / TileSize));
     }
-
-    struct Input final
-    {
-        std::array<bool, 4> isDirectionKeyPressed = {};
-        bool isAttackPressed = false;
-        Object *selectedEnemy = nullptr;
-
-        void ProcessEvents(sf::RenderWindow &window, const Camera &camera, World &world)
-        {
-            sf::Event event = {};
-            while (window.pollEvent(event))
-            {
-                ImGui::SFML::ProcessEvent(window, event);
-
-                if (event.type == sf::Event::Closed)
-                {
-                    window.close();
-                }
-                else if (event.type == sf::Event::KeyPressed)
-                {
-                    switch (event.key.code)
-                    {
-                    case sf::Keyboard::W:
-                        isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = true;
-                        break;
-                    case sf::Keyboard::A:
-                        isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = true;
-                        break;
-                    case sf::Keyboard::S:
-                        isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = true;
-                        break;
-                    case sf::Keyboard::D:
-                        isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = true;
-                        break;
-                    case sf::Keyboard::Space:
-                        isAttackPressed = true;
-                        break;
-                    default:
-                        break;
-                    }
-                }
-                else if (event.type == sf::Event::KeyReleased)
-                {
-                    switch (event.key.code)
-                    {
-                    case sf::Keyboard::W:
-                        isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = false;
-                        break;
-                    case sf::Keyboard::A:
-                        isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = false;
-                        break;
-                    case sf::Keyboard::S:
-                        isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = false;
-                        break;
-                    case sf::Keyboard::D:
-                        isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = false;
-                        break;
-                    case sf::Keyboard::Space:
-                        isAttackPressed = false;
-                        break;
-                    default:
-                        break;
-                    }
-                }
-                else if (!ImGui::GetIO().WantCaptureMouse && (event.type == sf::Event::MouseButtonPressed) &&
-                         (event.mouseButton.button == sf::Mouse::Button::Left))
-                {
-                    const sf::Vector2f pointInWorld = camera.getWorldFromScreenCoordinates(
-                        window, sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-                    selectedEnemy = FindEnemyByPosition(world, pointInWorld);
-                }
-            }
-        }
-    };
 
     constexpr unsigned frameRate = 60;
 
