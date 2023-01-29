@@ -27,7 +27,7 @@ namespace ij
         }
         return sf::IntRect(
             size.x * ((animationTime / 150) % WalkFrames), size.y * AssertCast<int>(direction), size.x, size.y);
-    };
+    }
 
     sf::IntRect CutWolfTexture(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
                                const sf::Vector2i &size);

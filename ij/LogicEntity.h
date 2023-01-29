@@ -35,11 +35,11 @@ namespace ij
         LogicEntity(std::unique_ptr<ObjectBehavior> behavior, const sf::Vector2f &position,
                     const sf::Vector2f &direction, bool hasCollisionWithWalls, bool hasBumpedIntoWall,
                     Health currentHealth, Health maximumHealth, ObjectActivity activity);
-        ObjectActivity GetActivity() const;
+        [[nodiscard]] ObjectActivity GetActivity() const;
         void SetActivity(ObjectActivity activity);
         [[nodiscard]] bool inflictDamage(Health damage);
-        Health GetCurrentHealth() const;
-        Health GetMaximumHealth() const;
+        [[nodiscard]] Health GetCurrentHealth() const;
+        [[nodiscard]] Health GetMaximumHealth() const;
 
         std::unique_ptr<ObjectBehavior> Behavior;
         sf::Vector2f Position;

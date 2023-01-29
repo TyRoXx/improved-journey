@@ -16,7 +16,8 @@ namespace ij
         void draw(sf::RenderWindow &window, const sf::CircleShape &shape);
         void draw(sf::RenderWindow &window, const sf::RectangleShape &shape);
         void draw(sf::RenderWindow &window, const sf::Text &text);
-        sf::Vector2f getWorldFromScreenCoordinates(const sf::RenderWindow &window, const sf::Vector2i &point) const;
-        bool canSee(const sf::RenderWindow &window, const VisualEntity &entity) const;
+        [[nodiscard]] sf::Vector2f getWorldFromScreenCoordinates(const sf::RenderWindow &window,
+                                                                 const sf::Vector2i &point) const;
+        [[nodiscard]] bool canSee(const sf::RenderWindow &window, const VisualEntity &entity) const;
     };
 } // namespace ij

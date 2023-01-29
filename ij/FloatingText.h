@@ -17,6 +17,6 @@ namespace ij
         explicit FloatingText(const sf::String &text, const sf::Vector2f &position, const sf::Font &font,
                               RandomNumberGenerator &random);
         void Update(const sf::Time &deltaTime);
-        bool HasExpired() const;
+        [[nodiscard]] bool HasExpired() const;
     };
 } // namespace ij
