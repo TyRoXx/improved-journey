@@ -348,6 +348,37 @@ namespace ij
             }
         }
     }
+
+    void SpawnEnemies(World &world, const size_t numberOfEnemies, const Map &map,
+                      const std::array<sf::Texture, 10> &enemyTextures, const std::array<sf::Vector2i, 10> &enemySizes,
+                      const std::array<int, 10> &enemyVerticalOffset,
+                      const std::array<TextureCutter *, 10> &enemyTextureCutters,
+                      RandomNumberGenerator &randomNumberGenerator)
+    {
+        for (size_t i = 0; i < enemyTextures.size(); ++i)
+        {
+            for (size_t k = 0; k < (numberOfEnemies / enemyTextures.size()); ++k)
+            {
+                Object &enemy = world.enemies.emplace_back();
+                enemy.Visuals.Sprite.setTexture(enemyTextures[i]);
+                enemy.Visuals.Cutter = enemyTextureCutters[i];
+                enemy.Visuals.SpriteSize = enemySizes[i];
+                enemy.Visuals.VerticalOffset = enemyVerticalOffset[i];
+                do
+                {
+                    enemy.Logic.Position.x = AssertCast<float>(
+                        TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(map.Width - 1)) +
+                        (TileSize / 2));
+                    enemy.Logic.Position.y = AssertCast<float>(
+                        TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(map.GetHeight() - 1)) +
+                        (TileSize / 2));
+                } while (!IsWalkable(enemy.Logic.Position, DefaultEntityDimensions, world));
+                enemy.Logic.Direction =
+                    DirectionToVector(AssertCast<Direction>(randomNumberGenerator.GenerateInt32(0, 3)));
+                enemy.Logic.Behavior = std::make_unique<Bot>();
+            }
+        }
+    }
 } // namespace ij
 
 int main()
@@ -414,32 +445,11 @@ int main()
     StandardRandomNumberGenerator randomNumberGenerator;
     const Map map = GenerateRandomMap(randomNumberGenerator);
 
-    const size_t numberOfTiles = map.Tiles.size();
-    const float enemiesPerTile = 0.02f;
-    const size_t numberOfEnemies = static_cast<size_t>(AssertCast<float>(numberOfTiles) * enemiesPerTile);
+    constexpr float enemiesPerTile = 0.02f;
+    const size_t numberOfEnemies = static_cast<size_t>(AssertCast<float>(map.Tiles.size()) * enemiesPerTile);
     World world(font, map);
-    for (size_t i = 0; i < enemyFileNames.size(); ++i)
-    {
-        for (size_t k = 0; k < (numberOfEnemies / enemyFileNames.size()); ++k)
-        {
-            Object &enemy = world.enemies.emplace_back();
-            enemy.Visuals.Sprite.setTexture(enemyTextures[i]);
-            enemy.Visuals.Cutter = enemyTextureCutters[i];
-            enemy.Visuals.SpriteSize = enemySizes[i];
-            enemy.Visuals.VerticalOffset = enemyVerticalOffset[i];
-            do
-            {
-                enemy.Logic.Position.x = AssertCast<float>(
-                    TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(map.Width - 1)) +
-                    (TileSize / 2));
-                enemy.Logic.Position.y = AssertCast<float>(
-                    TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(map.GetHeight() - 1)) +
-                    (TileSize / 2));
-            } while (!IsWalkable(enemy.Logic.Position, DefaultEntityDimensions, world));
-            enemy.Logic.Direction = DirectionToVector(AssertCast<Direction>(randomNumberGenerator.GenerateInt32(0, 3)));
-            enemy.Logic.Behavior = std::make_unique<Bot>();
-        }
-    }
+    SpawnEnemies(world, numberOfEnemies, map, enemyTextures, enemySizes, enemyVerticalOffset, enemyTextureCutters,
+                 randomNumberGenerator);
 
     Camera camera{player.Logic.Position};
     size_t tilesDrawnLastFrame = 0;
