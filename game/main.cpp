@@ -349,21 +349,35 @@ namespace ij
         }
     }
 
-    void SpawnEnemies(World &world, const size_t numberOfEnemies, const Map &map,
-                      const std::array<sf::Texture, 10> &enemyTextures, const std::array<sf::Vector2i, 10> &enemySizes,
-                      const std::array<int, 10> &enemyVerticalOffset,
-                      const std::array<TextureCutter *, 10> &enemyTextureCutters,
-                      RandomNumberGenerator &randomNumberGenerator)
+    struct EnemyTemplate
     {
-        for (size_t i = 0; i < enemyTextures.size(); ++i)
+        sf::Texture Texture;
+        sf::Vector2i Size;
+        int VerticalOffset;
+        TextureCutter *Cutter;
+
+        EnemyTemplate(const sf::Texture &texture, const sf::Vector2i &size, const int verticalOffset,
+                      TextureCutter *const cutter)
+            : Texture(texture)
+            , Size(size)
+            , VerticalOffset(verticalOffset)
+            , Cutter(cutter)
         {
-            for (size_t k = 0; k < (numberOfEnemies / enemyTextures.size()); ++k)
+        }
+    };
+
+    void SpawnEnemies(World &world, const size_t numberOfEnemies, const Map &map,
+                      const std::vector<EnemyTemplate> &enemies, RandomNumberGenerator &randomNumberGenerator)
+    {
+        for (const EnemyTemplate &enemyTemplate : enemies)
+        {
+            for (size_t k = 0; k < (numberOfEnemies / enemies.size()); ++k)
             {
                 Object &enemy = world.enemies.emplace_back();
-                enemy.Visuals.Sprite.setTexture(enemyTextures[i]);
-                enemy.Visuals.Cutter = enemyTextureCutters[i];
-                enemy.Visuals.SpriteSize = enemySizes[i];
-                enemy.Visuals.VerticalOffset = enemyVerticalOffset[i];
+                enemy.Visuals.Sprite.setTexture(enemyTemplate.Texture);
+                enemy.Visuals.Cutter = enemyTemplate.Cutter;
+                enemy.Visuals.SpriteSize = enemyTemplate.Size;
+                enemy.Visuals.VerticalOffset = enemyTemplate.VerticalOffset;
                 do
                 {
                     enemy.Logic.Position.x = AssertCast<float>(
@@ -378,6 +392,35 @@ namespace ij
                 enemy.Logic.Behavior = std::make_unique<Bot>();
             }
         }
+    }
+
+    std::optional<std::vector<EnemyTemplate>> LoadEnemies(const std::filesystem::path &assets)
+    {
+        std::array<sf::Texture, 10> enemyTextures = {};
+        const std::array<const char *, 10> enemyFileNames = {
+            "bat",      "bee",   "big_worm",   "eyeball", "ghost", "man_eater_flower",
+            "pumpking", "slime", "small_worm", "snake"};
+        for (size_t i = 0; i < enemyFileNames.size(); ++i)
+        {
+            const auto enemyFile = (assets / "lpc-monsters" / (std::string(enemyFileNames[i]) + ".png"));
+            if (!enemyTextures[i].loadFromFile(enemyFile.string()))
+            {
+                return std::nullopt;
+            }
+        }
+
+        std::vector<EnemyTemplate> enemies;
+        enemies.emplace_back(enemyTextures[0], sf::Vector2i(64, 64), 4, &cutEnemyTexture<4, 3>);
+        enemies.emplace_back(enemyTextures[1], sf::Vector2i(32, 32), 2, &cutEnemyTexture<3, 3>);
+        enemies.emplace_back(enemyTextures[2], sf::Vector2i(64, 64), 18, &cutEnemyTexture<3, 3>);
+        enemies.emplace_back(enemyTextures[3], sf::Vector2i(64, 64), 17, &cutEnemyTexture<3, 3>);
+        enemies.emplace_back(enemyTextures[4], sf::Vector2i(64, 64), 13, &cutEnemyTexture<3, 3>);
+        enemies.emplace_back(enemyTextures[5], sf::Vector2i(128, 128), 28, &cutEnemyTexture<3, 3>);
+        enemies.emplace_back(enemyTextures[6], sf::Vector2i(64, 64), 10, &cutEnemyTexture<3, 3>);
+        enemies.emplace_back(enemyTextures[7], sf::Vector2i(64, 64), 20, &cutEnemyTexture<3, 3>);
+        enemies.emplace_back(enemyTextures[8], sf::Vector2i(64, 64), 19, &cutEnemyTexture<3, 7>);
+        enemies.emplace_back(enemyTextures[9], sf::Vector2i(64, 64), 18, &cutEnemyTexture<4, 3>);
+        return enemies;
     }
 } // namespace ij
 
@@ -414,24 +457,10 @@ int main()
         return 1;
     }
 
-    std::array<sf::Texture, 10> enemyTextures = {};
-    const std::array<const char *, 10> enemyFileNames = {
-        "bat", "bee", "big_worm", "eyeball", "ghost", "man_eater_flower", "pumpking", "slime", "small_worm", "snake"};
-    const std::array<sf::Vector2i, 10> enemySizes = {
-        sf::Vector2i(64, 64),   sf::Vector2i(32, 32), sf::Vector2i(64, 64), sf::Vector2i(64, 64), sf::Vector2i(64, 64),
-        sf::Vector2i(128, 128), sf::Vector2i(64, 64), sf::Vector2i(64, 64), sf::Vector2i(64, 64), sf::Vector2i(64, 64)};
-    const std::array<int, 10> enemyVerticalOffset = {4, 2, 18, 17, 13, 28, 10, 20, 19, 18};
-    const std::array<TextureCutter *, 10> enemyTextureCutters = {
-        &cutEnemyTexture<4, 3>, &cutEnemyTexture<3, 3>, &cutEnemyTexture<3, 3>, &cutEnemyTexture<3, 3>,
-        &cutEnemyTexture<3, 3>, &cutEnemyTexture<3, 3>, &cutEnemyTexture<3, 3>, &cutEnemyTexture<3, 3>,
-        &cutEnemyTexture<3, 7>, &cutEnemyTexture<4, 3>};
-    for (size_t i = 0; i < enemyFileNames.size(); ++i)
+    const std::optional<std::vector<EnemyTemplate>> maybeEnemies = LoadEnemies(assets);
+    if (!maybeEnemies)
     {
-        const auto enemyFile = (assets / "lpc-monsters" / (std::string(enemyFileNames[i]) + ".png"));
-        if (!enemyTextures[i].loadFromFile(enemyFile.string()))
-        {
-            return 1;
-        }
+        return 1;
     }
 
     Input input;
@@ -448,8 +477,7 @@ int main()
     constexpr float enemiesPerTile = 0.02f;
     const size_t numberOfEnemies = static_cast<size_t>(AssertCast<float>(map.Tiles.size()) * enemiesPerTile);
     World world(font, map);
-    SpawnEnemies(world, numberOfEnemies, map, enemyTextures, enemySizes, enemyVerticalOffset, enemyTextureCutters,
-                 randomNumberGenerator);
+    SpawnEnemies(world, numberOfEnemies, map, *maybeEnemies, randomNumberGenerator);
 
     Camera camera{player.Logic.Position};
     size_t tilesDrawnLastFrame = 0;
