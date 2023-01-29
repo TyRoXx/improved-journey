@@ -11,15 +11,8 @@ namespace ij
         std::vector<int> Tiles;
         size_t Width;
 
-        size_t GetHeight() const
-        {
-            return Tiles.size() / Width;
-        }
-
-        int GetTileAt(const size_t x, const size_t y) const
-        {
-            return Tiles[(y * Width) + x];
-        }
+        size_t GetHeight() const;
+        int GetTileAt(const size_t x, const size_t y) const;
     };
 
     [[nodiscard]] Map GenerateRandomMap(RandomNumberGenerator &random);

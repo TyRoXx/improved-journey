@@ -1,5 +1,17 @@
 #include "World.h"
 
+ij::Object::Object(VisualEntity visuals, LogicEntity logic)
+    : Visuals(std::move(visuals))
+    , Logic(std::move(logic))
+{
+}
+
+ij::World::World(const sf::Font &font, const Map &map)
+    : Font(font)
+    , map(map)
+{
+}
+
 [[nodiscard]] ij::Object *ij::FindEnemyByPosition(World &world, const sf::Vector2f &position)
 {
     for (Object &enemy : world.enemies)

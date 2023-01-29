@@ -14,12 +14,9 @@ namespace ij
     sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const sf::Int32 animationTime,
                                 const Direction direction, const sf::Vector2i &size)
     {
-        sf::Int32 speed = 150;
         switch (animation)
         {
         case ObjectAnimation::Standing:
-            speed = 300;
-            break;
         case ObjectAnimation::Walking:
             break;
         case ObjectAnimation::Attacking:
@@ -32,6 +29,6 @@ namespace ij
             size.x * ((animationTime / 150) % WalkFrames), size.y * AssertCast<int>(direction), size.x, size.y);
     };
 
-    sf::IntRect CutWolfTexture(const ObjectAnimation animation, const sf::Int32 animationTime,
-                               const Direction direction, const sf::Vector2i &size);
+    sf::IntRect CutWolfTexture(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
+                               const sf::Vector2i &size);
 } // namespace ij

@@ -1,5 +1,15 @@
 #include "Map.h"
 
+size_t ij::Map::GetHeight() const
+{
+    return Tiles.size() / Width;
+}
+
+int ij::Map::GetTileAt(const size_t x, const size_t y) const
+{
+    return Tiles[(y * Width) + x];
+}
+
 [[nodiscard]] ij::Map ij::GenerateRandomMap(RandomNumberGenerator &random)
 {
     Map result;

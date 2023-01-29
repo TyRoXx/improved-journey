@@ -16,21 +16,8 @@ namespace ij
         std::random_device seedGenerator;
         std::default_random_engine engine;
 
-        StandardRandomNumberGenerator()
-            : engine(seedGenerator())
-        {
-        }
-
-        sf::Int32 GenerateInt32(sf::Int32 minimum, sf::Int32 maximum) override
-        {
-            std::uniform_int_distribution<sf::Int32> distribution(minimum, maximum);
-            return distribution(engine);
-        }
-
-        size_t GenerateSize(size_t minimum, size_t maximum) override
-        {
-            std::uniform_int_distribution<size_t> distribution(minimum, maximum);
-            return distribution(engine);
-        }
+        StandardRandomNumberGenerator();
+        sf::Int32 GenerateInt32(sf::Int32 minimum, sf::Int32 maximum) override;
+        size_t GenerateSize(size_t minimum, size_t maximum) override;
     };
 } // namespace ij

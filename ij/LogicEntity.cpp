@@ -7,6 +7,67 @@ bool ij::isDead(const LogicEntity &entity)
     return (entity.GetCurrentHealth() == 0);
 }
 
+ij::ObjectBehavior::~ObjectBehavior()
+{
+}
+
+ij::LogicEntity::LogicEntity(std::unique_ptr<ObjectBehavior> behavior, const sf::Vector2f &position,
+                             const sf::Vector2f &direction, bool hasCollisionWithWalls, bool hasBumpedIntoWall,
+                             Health currentHealth, Health maximumHealth, ObjectActivity activity)
+    : Behavior(move(behavior))
+    , Position(position)
+    , Direction(direction)
+    , HasCollisionWithWalls(hasCollisionWithWalls)
+    , HasBumpedIntoWall(hasBumpedIntoWall)
+    , currentHealth(currentHealth)
+    , maximumHealth(maximumHealth)
+    , Activity(activity)
+{
+}
+
+ij::ObjectActivity ij::LogicEntity::GetActivity() const
+{
+    return Activity;
+}
+
+void ij::LogicEntity::SetActivity(const ObjectActivity activity)
+{
+    if (isDead(*this))
+    {
+        Activity = ObjectActivity::Dead;
+        return;
+    }
+    Activity = activity;
+}
+
+bool ij::LogicEntity::inflictDamage(const Health damage)
+{
+    if (currentHealth == 0)
+    {
+        return false;
+    }
+    currentHealth -= damage;
+    if (currentHealth < 0)
+    {
+        currentHealth = 0;
+    }
+    if (isDead(*this))
+    {
+        SetActivity(ObjectActivity::Dead);
+    }
+    return true;
+}
+
+ij::Health ij::LogicEntity::GetCurrentHealth() const
+{
+    return currentHealth;
+}
+
+ij::Health ij::LogicEntity::GetMaximumHealth() const
+{
+    return maximumHealth;
+}
+
 [[nodiscard]] bool ij::IsWalkablePoint(const sf::Vector2f &point, const World &world)
 {
     const sf::Vector2<ptrdiff_t> tileIndex(

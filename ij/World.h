@@ -13,11 +13,7 @@ namespace ij
         VisualEntity Visuals;
         LogicEntity Logic;
 
-        Object(VisualEntity visuals, LogicEntity logic)
-            : Visuals(std::move(visuals))
-            , Logic(std::move(logic))
-        {
-        }
+        Object(VisualEntity visuals, LogicEntity logic);
     };
 
     struct World final
@@ -27,11 +23,7 @@ namespace ij
         const sf::Font &Font;
         const Map &map;
 
-        explicit World(const sf::Font &font, const Map &map)
-            : Font(font)
-            , map(map)
-        {
-        }
+        explicit World(const sf::Font &font, const Map &map);
     };
 
     [[nodiscard]] Object *FindEnemyByPosition(World &world, const sf::Vector2f &position);

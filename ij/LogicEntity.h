@@ -23,74 +23,23 @@ namespace ij
 
     struct ObjectBehavior
     {
-        virtual ~ObjectBehavior()
-        {
-        }
-
+        virtual ~ObjectBehavior();
         virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
                             RandomNumberGenerator &random) = 0;
     };
 
     using Health = sf::Int32;
 
-    struct LogicEntity
+    struct LogicEntity final
     {
         LogicEntity(std::unique_ptr<ObjectBehavior> behavior, const sf::Vector2f &position,
                     const sf::Vector2f &direction, bool hasCollisionWithWalls, bool hasBumpedIntoWall,
-                    Health currentHealth, Health maximumHealth, ObjectActivity activity)
-            : Behavior(move(behavior))
-            , Position(position)
-            , Direction(direction)
-            , HasCollisionWithWalls(hasCollisionWithWalls)
-            , HasBumpedIntoWall(hasBumpedIntoWall)
-            , currentHealth(currentHealth)
-            , maximumHealth(maximumHealth)
-            , Activity(activity)
-        {
-        }
-
-        ObjectActivity GetActivity() const
-        {
-            return Activity;
-        }
-
-        void SetActivity(const ObjectActivity activity)
-        {
-            if (isDead(*this))
-            {
-                Activity = ObjectActivity::Dead;
-                return;
-            }
-            Activity = activity;
-        }
-
-        [[nodiscard]] bool inflictDamage(const Health damage)
-        {
-            if (currentHealth == 0)
-            {
-                return false;
-            }
-            currentHealth -= damage;
-            if (currentHealth < 0)
-            {
-                currentHealth = 0;
-            }
-            if (isDead(*this))
-            {
-                SetActivity(ObjectActivity::Dead);
-            }
-            return true;
-        }
-
-        Health GetCurrentHealth() const
-        {
-            return currentHealth;
-        }
-
-        Health GetMaximumHealth() const
-        {
-            return maximumHealth;
-        }
+                    Health currentHealth, Health maximumHealth, ObjectActivity activity);
+        ObjectActivity GetActivity() const;
+        void SetActivity(ObjectActivity activity);
+        [[nodiscard]] bool inflictDamage(Health damage);
+        Health GetCurrentHealth() const;
+        Health GetMaximumHealth() const;
 
         std::unique_ptr<ObjectBehavior> Behavior;
         sf::Vector2f Position;

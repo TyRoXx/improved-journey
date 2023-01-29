@@ -11,8 +11,8 @@ namespace ij
         bool &isAttackPressed;
 
         explicit PlayerCharacter(const std::array<bool, 4> &isDirectionKeyPressed, bool &isAttackPressed);
-        virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
-                            RandomNumberGenerator &random) final;
+        void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+                    RandomNumberGenerator &random) override;
     };
 
 } // namespace ij
