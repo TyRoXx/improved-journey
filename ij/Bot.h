@@ -1,6 +1,5 @@
 #pragma once
 #include "LogicEntity.h"
-#include "Normalize.h"
 #include "RandomNumberGenerator.h"
 #include "World.h"
 

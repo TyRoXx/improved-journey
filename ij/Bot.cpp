@@ -1,4 +1,5 @@
 #include "Bot.h"
+#include "Normalize.h"
 #include "Unreachable.h"
 
 void ij::Bot::update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
