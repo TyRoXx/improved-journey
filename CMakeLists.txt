@@ -34,10 +34,9 @@ if(UNIX)
         -Wunused
         -Wundef
         -Wvla
-        -Wswitch-enum
         -Wuninitialized
         -Wstrict-overflow=5
-        -std=c++20
+        -std=c++2a
     )
 endif()
 
@@ -68,7 +67,7 @@ if(MSVC)
     add_definitions(/wd4868)
 endif()
 
-find_program(FO_CLANG_FORMAT NAMES clang-format PATHS "C:/Program Files/LLVM/bin")
+find_program(FO_CLANG_FORMAT REQUIRED NAMES clang-format clang-format-12 PATHS "C:/Program Files/LLVM/bin")
 if(FO_CLANG_FORMAT)
     file(GLOB_RECURSE formatted
         ij/**.cpp ij/**.h

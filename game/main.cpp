@@ -127,8 +127,8 @@ namespace ij
                 ImGui::Checkbox("Bumped", &selectedEnemy->Logic.HasBumpedIntoWall);
                 ImGui::EndDisabled();
                 ImGui::LabelText("Animation", "%s", GetObjectAnimationName(selectedEnemy->Visuals.Animation));
-                ImGui::LabelText(
-                    "Direction", "%f %f", selectedEnemy->Logic.Direction.x, selectedEnemy->Logic.Direction.y);
+                ImGui::LabelText("Direction", "%f %f", AssertCast<double>(selectedEnemy->Logic.Direction.x),
+                                 AssertCast<double>(selectedEnemy->Logic.Direction.y));
                 if (const Bot *const bot = dynamic_cast<const Bot *>(selectedEnemy->Logic.Behavior.get()))
                 {
                     ImGui::LabelText("State", "%s", Bot::GetStateName(bot->GetState()));
@@ -222,10 +222,10 @@ namespace ij
             }
         }
 
-        std::ranges::sort(
-            spritesToDrawInZOrder, [](const sf::Sprite *const left, const sf::Sprite *const right) -> bool {
-                return (bottomOfSprite(*left) < bottomOfSprite(*right));
-            });
+        std::sort(spritesToDrawInZOrder.begin(), spritesToDrawInZOrder.end(),
+                  [](const sf::Sprite *const left, const sf::Sprite *const right) -> bool {
+                      return (bottomOfSprite(*left) < bottomOfSprite(*right));
+                  });
         for (const sf::Sprite *const sprite : spritesToDrawInZOrder)
         {
             camera.draw(window, *sprite);
