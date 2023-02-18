@@ -30,38 +30,88 @@
 
 namespace ij
 {
+    struct Color final
+    {
+        std::uint8_t Red, Green, Blue, Alpha;
+
+        Color(std::uint8_t red, std::uint8_t green, std::uint8_t blue, std::uint8_t alpha) noexcept
+            : Red(red)
+            , Green(green)
+            , Blue(blue)
+            , Alpha(alpha)
+        {
+        }
+    };
+
+    sf::Color ToSfml(const Color &value) noexcept
+    {
+        return sf::Color(value.Red, value.Green, value.Blue, value.Alpha);
+    }
+
+    struct Canvas
+    {
+        virtual ~Canvas()
+        {
+        }
+        virtual void DrawDot(const Vector2i &position, Color color) = 0;
+        virtual void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, Color outline, Color fill) = 0;
+    };
+
+    struct SfmlCanvas final : Canvas
+    {
+        sf::RenderWindow &Window;
+
+        explicit SfmlCanvas(sf::RenderWindow &window)
+            : Window(window)
+        {
+        }
+
+        void DrawDot(const Vector2i &position, const Color color) override
+        {
+            sf::CircleShape circle(1);
+            circle.setOutlineColor(ToSfml(color));
+            circle.setFillColor(ToSfml(color));
+            circle.setPosition(sf::Vector2f(ToSfml(position)));
+            Window.draw(circle);
+        }
+
+        void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, const Color outline,
+                           const Color fill) override
+        {
+            sf::RectangleShape rect;
+            rect.setPosition(sf::Vector2f(ToSfml(topLeft)));
+            rect.setSize(sf::Vector2f(ToSfml(size)));
+            rect.setFillColor(ToSfml(fill));
+            rect.setOutlineColor(ToSfml(outline));
+            rect.setOutlineThickness(1);
+            Window.draw(rect);
+        }
+    };
+
     float bottomOfSprite(const sf::Sprite &sprite)
     {
         return (sprite.getPosition().y + AssertCast<float>(sprite.getTextureRect().height));
     }
 
-    void drawHealthBar(sf::RenderWindow &window, const Object &object)
+    void drawHealthBar(Canvas &canvas, const Object &object)
     {
         if (object.Logic.GetCurrentHealth() == object.Logic.GetMaximumHealth())
         {
             return;
         }
-        constexpr Int32 width = 24;
-        constexpr Int32 height = 4;
-        const float x = object.Logic.Position.x - AssertCast<float>(width) / 2;
-        const float y =
-            object.Logic.Position.y - AssertCast<float>(object.Visuals.GetTextureRect(object.Logic.Direction).height);
-        const float greenPortion = AssertCast<float>(object.Logic.GetCurrentHealth()) /
-                                   AssertCast<float>(object.Logic.GetMaximumHealth()) * AssertCast<float>(width);
-        {
-            sf::RectangleShape green;
-            green.setPosition(sf::Vector2f(x, y));
-            green.setFillColor(sf::Color::Green);
-            green.setSize(sf::Vector2f(greenPortion, height));
-            window.draw(green);
-        }
-        {
-            sf::RectangleShape red;
-            red.setPosition(sf::Vector2f(x + greenPortion, y));
-            red.setFillColor(sf::Color::Red);
-            red.setSize(sf::Vector2f(width - greenPortion, height));
-            window.draw(red);
-        }
+        constexpr UInt32 width = 24;
+        constexpr UInt32 height = 4;
+        const Int32 x = RoundDown<Int32>(object.Logic.Position.x) - AssertCast<Int32>(width / 2);
+        const Int32 y =
+            RoundDown<Int32>(object.Logic.Position.y) - object.Visuals.GetTextureRect(object.Logic.Direction).height;
+        const UInt32 greenPortion =
+            RoundDown<UInt32>(AssertCast<float>(object.Logic.GetCurrentHealth()) /
+                              AssertCast<float>(object.Logic.GetMaximumHealth()) * AssertCast<float>(width));
+        const Color green(0, 255, 0, 255);
+        canvas.DrawRectangle(Vector2i(x, y), Vector2u(greenPortion, height), green, green);
+        const Color red(255, 0, 0, 255);
+        canvas.DrawRectangle(
+            Vector2i(x + AssertCast<Int32>(greenPortion), y), Vector2u((width - greenPortion), height), red, red);
     }
 
     Vector2i findTileByCoordinates(const Vector2f &position)
@@ -128,64 +178,6 @@ namespace ij
         ImGui::Checkbox("Zoom out", &debugging.IsZoomedOut);
         ImGui::End();
     }
-
-    struct Color final
-    {
-        std::uint8_t Red, Green, Blue, Alpha;
-
-        Color(std::uint8_t red, std::uint8_t green, std::uint8_t blue, std::uint8_t alpha) noexcept
-            : Red(red)
-            , Green(green)
-            , Blue(blue)
-            , Alpha(alpha)
-        {
-        }
-    };
-
-    sf::Color ToSfml(const Color &value) noexcept
-    {
-        return sf::Color(value.Red, value.Green, value.Blue, value.Alpha);
-    }
-
-    struct Canvas
-    {
-        virtual ~Canvas()
-        {
-        }
-        virtual void DrawDot(const Vector2i &position, Color color) = 0;
-        virtual void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, Color outline, Color fill) = 0;
-    };
-
-    struct SfmlCanvas final : Canvas
-    {
-        sf::RenderWindow &Window;
-
-        explicit SfmlCanvas(sf::RenderWindow &window)
-            : Window(window)
-        {
-        }
-
-        void DrawDot(const Vector2i &position, const Color color) override
-        {
-            sf::CircleShape circle(1);
-            circle.setOutlineColor(ToSfml(color));
-            circle.setFillColor(ToSfml(color));
-            circle.setPosition(sf::Vector2f(ToSfml(position)));
-            Window.draw(circle);
-        }
-
-        void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, const Color outline,
-                           const Color fill) override
-        {
-            sf::RectangleShape rect;
-            rect.setPosition(sf::Vector2f(ToSfml(topLeft)));
-            rect.setSize(sf::Vector2f(ToSfml(size)));
-            rect.setFillColor(ToSfml(fill));
-            rect.setOutlineColor(ToSfml(outline));
-            rect.setOutlineThickness(1);
-            Window.draw(rect);
-        }
-    };
 
     void DrawWorld(sf::RenderWindow &window, Camera &camera, Input &input, Debugging &debugging, World &world,
                    Object &player, const sf::Texture &grassTexture, const TimeSpan timeSinceLastDraw)
@@ -269,10 +261,10 @@ namespace ij
             window.draw(*floatingText.Text);
         }
 
-        drawHealthBar(window, player);
+        drawHealthBar(canvas, player);
         for (const Object *const enemy : visibleEnemies)
         {
-            drawHealthBar(window, *enemy);
+            drawHealthBar(canvas, *enemy);
         }
 
         canvas.DrawDot(RoundDown<Int32>(player.Logic.Position), Color(0, 255, 0, 255));
