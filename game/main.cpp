@@ -62,27 +62,6 @@ namespace ij
         }
     }
 
-    void loadAllSprites(const std::filesystem::path &assets)
-    {
-        std::filesystem::directory_iterator i(assets);
-        for (; i != std::filesystem::directory_iterator(); ++i)
-        {
-            const auto &entry = *i;
-            if (entry.is_directory())
-            {
-                loadAllSprites(entry.path());
-            }
-            else if (entry.is_regular_file() && (entry.path().extension() == ".png"))
-            {
-                sf::Texture texture;
-                if (!texture.loadFromFile(entry.path().string()))
-                {
-                    std::cerr << "Could not load " << entry.path() << '\n';
-                }
-            }
-        }
-    }
-
     template <class Integer>
     Integer RoundDown(const float value)
     {
@@ -287,7 +266,6 @@ int main()
 
     const std::filesystem::path assets =
         std::filesystem::current_path().parent_path().parent_path() / "improved-journey" / "assets";
-    loadAllSprites(assets);
 
     sf::Font font;
     if (!font.loadFromFile((assets / "Roboto-Font" / "Roboto-Light.ttf").string()))
