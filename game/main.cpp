@@ -158,10 +158,11 @@ namespace ij
     void DrawWorld(sf::RenderWindow &window, Camera &camera, Input &input, Debugging &debugging, World &world,
                    Object &player, const sf::Texture &grassTexture, const sf::Time timeSinceLastDraw)
     {
+        const sf::Vector2u windowSize = window.getSize();
         const sf::Vector2i topLeft =
-            findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(0, 0)));
+            findTileByCoordinates(camera.getWorldFromScreenCoordinates(windowSize, sf::Vector2i(0, 0)));
         const sf::Vector2i bottomRight =
-            findTileByCoordinates(camera.getWorldFromScreenCoordinates(window, sf::Vector2i(window.getSize())));
+            findTileByCoordinates(camera.getWorldFromScreenCoordinates(windowSize, sf::Vector2i(window.getSize())));
 
         debugging.tilesDrawnLastFrame = 0;
         for (size_t y = AssertCast<size_t>((std::max)(0, topLeft.y)),
@@ -197,7 +198,7 @@ namespace ij
         for (Object &enemy : world.enemies)
         {
             updateVisuals(enemy.Logic, enemy.Visuals, timeSinceLastDraw);
-            if (camera.canSee(window, enemy.Visuals))
+            if (camera.canSee(windowSize, enemy.Visuals))
             {
                 visibleEnemies.push_back(&enemy);
                 spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);

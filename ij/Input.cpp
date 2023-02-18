@@ -65,8 +65,8 @@ void ij::Input::ProcessEvents(sf::RenderWindow &window, const Camera &camera, Wo
         else if (!ImGui::GetIO().WantCaptureMouse && (event.type == sf::Event::MouseButtonPressed) &&
                  (event.mouseButton.button == sf::Mouse::Button::Left))
         {
-            const sf::Vector2f pointInWorld =
-                camera.getWorldFromScreenCoordinates(window, sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+            const sf::Vector2f pointInWorld = camera.getWorldFromScreenCoordinates(
+                window.getSize(), sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
             selectedEnemy = FindEnemyByPosition(world, pointInWorld);
         }
     }
