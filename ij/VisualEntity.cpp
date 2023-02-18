@@ -1,7 +1,7 @@
 #include "VisualEntity.h"
 #include "ToSfml.h"
 
-ij::VisualEntity::VisualEntity(const sf::Texture *texture, const Vector2u &spriteSize, Int32 verticalOffset,
+ij::VisualEntity::VisualEntity(TextureId texture, const Vector2u &spriteSize, Int32 verticalOffset,
                                TimeSpan animationTime, TextureCutter *cutter, ObjectAnimation animation)
     : Texture(texture)
     , SpriteSize(spriteSize)
@@ -10,7 +10,6 @@ ij::VisualEntity::VisualEntity(const sf::Texture *texture, const Vector2u &sprit
     , Cutter(cutter)
     , Animation(animation)
 {
-    assert(Texture);
 }
 
 ij::Vector2f ij::VisualEntity::GetOffset() const
@@ -19,7 +18,7 @@ ij::Vector2f ij::VisualEntity::GetOffset() const
            Vector2f(0, AssertCast<float>(VerticalOffset));
 }
 
-sf::IntRect ij::VisualEntity::GetTextureRect(const Vector2f &direction) const
+ij::TextureRectangle ij::VisualEntity::GetTextureRect(const Vector2f &direction) const
 {
     return Cutter(Animation, AnimationTime, DirectionFromVector(direction), SpriteSize);
 }
@@ -53,7 +52,7 @@ void ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const Ti
     visuals.AnimationTime += deltaTime;
 }
 
-sf::Sprite ij::CreateSpriteForVisualEntity(const LogicEntity &logic, const VisualEntity &visuals)
+ij::Sprite ij::CreateSpriteForVisualEntity(const LogicEntity &logic, const VisualEntity &visuals)
 {
     bool isColoredDead = false;
     switch (visuals.Animation)
@@ -66,11 +65,9 @@ sf::Sprite ij::CreateSpriteForVisualEntity(const LogicEntity &logic, const Visua
         isColoredDead = true;
         break;
     }
-    assert(visuals.Texture);
-    sf::Sprite result(*visuals.Texture);
-    result.setTextureRect(visuals.GetTextureRect(logic.Direction));
+    const TextureRectangle textureRect = visuals.GetTextureRect(logic.Direction);
     // the position of an object is at the bottom center of the sprite (on the ground)
-    result.setPosition(ToSfml(visuals.GetTopLeftPosition(logic.Position)));
-    result.setColor(isColoredDead ? sf::Color(128, 128, 128, 255) : sf::Color::White);
-    return result;
+    const Vector2i position = RoundDown<Int32>(visuals.GetTopLeftPosition(logic.Position));
+    const auto color = isColoredDead ? Color(128, 128, 128, 255) : Color(255, 255, 255, 255);
+    return Sprite(visuals.Texture, position, color, textureRect.Position, textureRect.Size);
 }

@@ -30,24 +30,6 @@
 
 namespace ij
 {
-    struct Color final
-    {
-        std::uint8_t Red, Green, Blue, Alpha;
-
-        Color(std::uint8_t red, std::uint8_t green, std::uint8_t blue, std::uint8_t alpha) noexcept
-            : Red(red)
-            , Green(green)
-            , Blue(blue)
-            , Alpha(alpha)
-        {
-        }
-    };
-
-    sf::Color ToSfml(const Color &value) noexcept
-    {
-        return sf::Color(value.Red, value.Green, value.Blue, value.Alpha);
-    }
-
     struct Canvas
     {
         virtual ~Canvas()
@@ -56,14 +38,17 @@ namespace ij
         [[nodiscard]] virtual Vector2u GetSize() = 0;
         virtual void DrawDot(const Vector2i &position, Color color) = 0;
         virtual void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, Color outline, Color fill) = 0;
+        virtual void DrawSprite(const Sprite &sprite) = 0;
     };
 
     struct SfmlCanvas final : Canvas
     {
         sf::RenderWindow &Window;
+        TextureManager &Textures;
 
-        explicit SfmlCanvas(sf::RenderWindow &window)
+        explicit SfmlCanvas(sf::RenderWindow &window, TextureManager &textures)
             : Window(window)
+            , Textures(textures)
         {
         }
 
@@ -92,11 +77,21 @@ namespace ij
             rect.setOutlineThickness(1);
             Window.draw(rect);
         }
+
+        void DrawSprite(const Sprite &sprite) override
+        {
+            sf::Sprite sfmlSprite(Textures.GetTexture(sprite.Texture));
+            sfmlSprite.setPosition(ToSfml(AssertCastVector<float>(sprite.Position)));
+            sfmlSprite.setColor(ToSfml(sprite.ColorMultiplier));
+            sfmlSprite.setTextureRect(sf::IntRect(ToSfml(AssertCastVector<Int32>(sprite.TextureTopLeft)),
+                                                  ToSfml(AssertCastVector<Int32>(sprite.TextureSize))));
+            Window.draw(sfmlSprite);
+        }
     };
 
-    float bottomOfSprite(const sf::Sprite &sprite)
+    float bottomOfSprite(const Sprite &sprite)
     {
-        return (sprite.getPosition().y + AssertCast<float>(sprite.getTextureRect().height));
+        return (AssertCast<float>(sprite.Position.y) + AssertCast<float>(sprite.TextureSize.y));
     }
 
     void drawHealthBar(Canvas &canvas, const Object &object)
@@ -108,8 +103,8 @@ namespace ij
         constexpr UInt32 width = 24;
         constexpr UInt32 height = 4;
         const Int32 x = RoundDown<Int32>(object.Logic.Position.x) - AssertCast<Int32>(width / 2);
-        const Int32 y =
-            RoundDown<Int32>(object.Logic.Position.y) - object.Visuals.GetTextureRect(object.Logic.Direction).height;
+        const Int32 y = RoundDown<Int32>(object.Logic.Position.y) -
+                        AssertCast<Int32>(object.Visuals.GetTextureRect(object.Logic.Direction).Size.y);
         const UInt32 greenPortion =
             RoundDown<UInt32>(AssertCast<float>(object.Logic.GetCurrentHealth()) /
                               AssertCast<float>(object.Logic.GetMaximumHealth()) * AssertCast<float>(width));
@@ -185,10 +180,11 @@ namespace ij
         ImGui::End();
     }
 
-    void DrawWorld(sf::RenderWindow &window, const Camera &camera, const Input &input, Debugging &debugging,
-                   World &world, Object &player, const sf::Texture &grassTexture, const TimeSpan timeSinceLastDraw)
+    void DrawWorld(sf::RenderWindow &window, TextureManager &textures, const Camera &camera, const Input &input,
+                   Debugging &debugging, World &world, Object &player, const sf::Texture &grassTexture,
+                   const TimeSpan timeSinceLastDraw)
     {
-        SfmlCanvas canvas{window};
+        SfmlCanvas canvas{window, textures};
         const Vector2u windowSize = canvas.GetSize();
         const Vector2i topLeft =
             findTileByCoordinates(camera.getWorldFromScreenCoordinates(windowSize, Vector2i(0, 0)));
@@ -220,7 +216,7 @@ namespace ij
         }
 
         std::vector<const Object *> visibleEnemies;
-        std::vector<sf::Sprite> spritesToDrawInZOrder;
+        std::vector<Sprite> spritesToDrawInZOrder;
         updateVisuals(player.Logic, player.Visuals, timeSinceLastDraw);
         spritesToDrawInZOrder.emplace_back(CreateSpriteForVisualEntity(player.Logic, player.Visuals));
 
@@ -228,7 +224,7 @@ namespace ij
         for (Object &enemy : world.enemies)
         {
             updateVisuals(enemy.Logic, enemy.Visuals, timeSinceLastDraw);
-            sf::Sprite sprite = CreateSpriteForVisualEntity(enemy.Logic, enemy.Visuals);
+            Sprite sprite = CreateSpriteForVisualEntity(enemy.Logic, enemy.Visuals);
             if (camera.canSee(windowSize, enemy.Logic.Position, enemy.Visuals))
             {
                 visibleEnemies.push_back(&enemy);
@@ -254,12 +250,12 @@ namespace ij
             }
         }
 
-        std::ranges::sort(spritesToDrawInZOrder, [](const sf::Sprite &left, const sf::Sprite &right) -> bool {
+        std::ranges::sort(spritesToDrawInZOrder, [](const Sprite &left, const Sprite &right) -> bool {
             return (bottomOfSprite(left) < bottomOfSprite(right));
         });
-        for (const sf::Sprite &sprite : spritesToDrawInZOrder)
+        for (const Sprite &sprite : spritesToDrawInZOrder)
         {
-            window.draw(sprite);
+            canvas.DrawSprite(sprite);
         }
 
         for (FloatingText &floatingText : world.FloatingTexts)
@@ -312,8 +308,9 @@ int main()
     const std::filesystem::path wolfsheet1File = (assets / "LPC Wolfman" / "Male" / "Gray" / "Universal.png");
     assert(std::filesystem::exists(wolfsheet1File));
 
-    sf::Texture wolfsheet1Texture;
-    if (!wolfsheet1Texture.loadFromFile(wolfsheet1File.string()))
+    TextureManager textures;
+    std::optional<TextureId> wolfsheet1Texture = textures.LoadFromFile(wolfsheet1File);
+    if (!wolfsheet1Texture)
     {
         std::cerr << "Could not load player texture\n";
         return 1;
@@ -327,7 +324,7 @@ int main()
         return 1;
     }
 
-    const std::optional<std::vector<EnemyTemplate>> maybeEnemies = LoadEnemies(assets);
+    const std::optional<std::vector<EnemyTemplate>> maybeEnemies = LoadEnemies(textures, assets);
     if (!maybeEnemies)
     {
         std::cerr << "Could not load enemies\n";
@@ -343,7 +340,7 @@ int main()
     World world(font, map);
     SpawnEnemies(world, numberOfEnemies, *maybeEnemies, randomNumberGenerator);
 
-    Object player(VisualEntity(&wolfsheet1Texture, Vector2u(64, 64), 0, TimeSpan::FromMilliseconds(0), CutWolfTexture,
+    Object player(VisualEntity(*wolfsheet1Texture, Vector2u(64, 64), 0, TimeSpan::FromMilliseconds(0), CutWolfTexture,
                                ObjectAnimation::Standing),
                   LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
                               GenerateRandomPointForSpawning(world, randomNumberGenerator), Vector2f(0, 0), true, false,
@@ -379,7 +376,7 @@ int main()
         }
         window.setView(sf::View(ToSfml(camera.Center), viewSize));
 
-        DrawWorld(window, camera, input, debugging, world, player, grassTexture, deltaTime);
+        DrawWorld(window, textures, camera, input, debugging, world, player, grassTexture, deltaTime);
 
         if (debugging.IsZoomedOut)
         {

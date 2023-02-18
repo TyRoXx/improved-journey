@@ -8,12 +8,20 @@
 
 namespace ij
 {
-    using TextureCutter = sf::IntRect(ObjectAnimation animation, TimeSpan animationTime, Direction direction,
-                                      const Vector2u &size);
+    template <class P, class S>
+    struct Rectangle final
+    {
+        Vector2<P> Position;
+        Vector2<S> Size;
+    };
+
+    using TextureRectangle = Rectangle<UInt32, UInt32>;
+    using TextureCutter = TextureRectangle(ObjectAnimation animation, TimeSpan animationTime, Direction direction,
+                                           const Vector2u &size);
 
     template <Int32 WalkFrames, Int32 AttackFrames>
-    sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const TimeSpan animationTime,
-                                const Direction direction, const Vector2u &size)
+    TextureRectangle cutEnemyTexture(const ObjectAnimation animation, const TimeSpan animationTime,
+                                     const Direction direction, const Vector2u &size)
     {
         switch (animation)
         {
@@ -21,19 +29,19 @@ namespace ij
         case ObjectAnimation::Walking:
             break;
         case ObjectAnimation::Attacking:
-            return sf::IntRect(
-                AssertCast<Int32>(size.x * (((animationTime.Milliseconds / 200) % AttackFrames) + WalkFrames)),
-                AssertCast<Int32>(size.y * AssertCast<Int32>(direction)), AssertCast<Int32>(size.x),
-                AssertCast<Int32>(size.y));
+            return TextureRectangle(
+                Vector2u(
+                    (size.x * (AssertCast<UInt32>((animationTime.Milliseconds / 200) % AttackFrames) + WalkFrames)),
+                    (size.y * AssertCast<UInt32>(direction))),
+                size);
         case ObjectAnimation::Dead:
-            return sf::IntRect(0, AssertCast<Int32>(size.y * AssertCast<Int32>(direction)), AssertCast<Int32>(size.x),
-                               AssertCast<Int32>(size.y));
+            return TextureRectangle(Vector2u(0, (size.y * AssertCast<UInt32>(direction))), size);
         }
-        return sf::IntRect(AssertCast<Int32>(size.x * ((animationTime.Milliseconds / 150) % WalkFrames)),
-                           AssertCast<Int32>(size.y * AssertCast<Int32>(direction)), AssertCast<Int32>(size.x),
-                           AssertCast<Int32>(size.y));
+        return TextureRectangle(Vector2u((size.x * (AssertCast<UInt32>(animationTime.Milliseconds / 150) % WalkFrames)),
+                                         (size.y * AssertCast<UInt32>(direction))),
+                                size);
     }
 
-    sf::IntRect CutWolfTexture(ObjectAnimation animation, TimeSpan animationTime, Direction direction,
-                               const Vector2u &size);
+    TextureRectangle CutWolfTexture(ObjectAnimation animation, TimeSpan animationTime, Direction direction,
+                                    const Vector2u &size);
 } // namespace ij
