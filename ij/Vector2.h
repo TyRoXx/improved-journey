@@ -49,7 +49,7 @@ namespace ij
     }
 
     template <class To, class From>
-    Vector2<To> AssertCastVector(const Vector2<From> &from)
+    Vector2<To> AssertCastVector(const Vector2<From> &from) noexcept
     {
         return {AssertCast<To>(from.x), AssertCast<To>(from.y)};
     }
