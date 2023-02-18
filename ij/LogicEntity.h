@@ -1,7 +1,7 @@
 #pragma once
 #include "Int.h"
+#include "Vector2.h"
 #include <SFML/System/Time.hpp>
-#include <SFML/System/Vector2.hpp>
 #include <memory>
 
 namespace ij
@@ -32,9 +32,9 @@ namespace ij
 
     struct LogicEntity final
     {
-        LogicEntity(std::unique_ptr<ObjectBehavior> behavior, const sf::Vector2f &position,
-                    const sf::Vector2f &direction, bool hasCollisionWithWalls, bool hasBumpedIntoWall,
-                    Health currentHealth, Health maximumHealth, ObjectActivity activity);
+        LogicEntity(std::unique_ptr<ObjectBehavior> behavior, const Vector2f &position, const Vector2f &direction,
+                    bool hasCollisionWithWalls, bool hasBumpedIntoWall, Health currentHealth, Health maximumHealth,
+                    ObjectActivity activity);
         [[nodiscard]] ObjectActivity GetActivity() const;
         void SetActivity(ObjectActivity activity);
         [[nodiscard]] bool inflictDamage(Health damage);
@@ -42,8 +42,8 @@ namespace ij
         [[nodiscard]] Health GetMaximumHealth() const;
 
         std::unique_ptr<ObjectBehavior> Behavior;
-        sf::Vector2f Position;
-        sf::Vector2f Direction;
+        Vector2f Position;
+        Vector2f Direction;
         bool HasCollisionWithWalls = true;
         bool HasBumpedIntoWall = false;
 
@@ -54,11 +54,11 @@ namespace ij
     };
 
     constexpr int TileSize = 32;
-    const sf::Vector2f DefaultEntityDimensions(8, 8);
+    const Vector2f DefaultEntityDimensions(8, 8);
 
-    [[nodiscard]] bool IsWalkablePoint(const sf::Vector2f &point, const World &world);
-    [[nodiscard]] bool IsWalkable(const sf::Vector2f &point, const sf::Vector2f &entityDimensions, const World &world);
-    void MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &desiredChange, const World &world);
+    [[nodiscard]] bool IsWalkablePoint(const Vector2f &point, const World &world);
+    [[nodiscard]] bool IsWalkable(const Vector2f &point, const Vector2f &entityDimensions, const World &world);
+    void MoveWithCollisionDetection(LogicEntity &entity, const Vector2f &desiredChange, const World &world);
     void updateLogic(LogicEntity &entity, LogicEntity &player, World &world, const sf::Time &deltaTime,
                      RandomNumberGenerator &random);
 } // namespace ij

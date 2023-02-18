@@ -2,7 +2,7 @@
 #include "Bot.h"
 #include <array>
 
-ij::EnemyTemplate::EnemyTemplate(const sf::Texture &texture, const sf::Vector2i &size, const int verticalOffset,
+ij::EnemyTemplate::EnemyTemplate(const sf::Texture &texture, const Vector2i &size, const int verticalOffset,
                                  TextureCutter *const cutter)
     : Texture(texture)
     , Size(size)
@@ -18,8 +18,8 @@ void ij::SpawnEnemies(World &world, const size_t numberOfEnemies, const std::vec
     {
         for (size_t k = 0; k < (numberOfEnemies / enemies.size()); ++k)
         {
-            const sf::Vector2f position = GenerateRandomPointForSpawning(world, randomNumberGenerator);
-            const sf::Vector2f direction =
+            const Vector2f position = GenerateRandomPointForSpawning(world, randomNumberGenerator);
+            const Vector2f direction =
                 DirectionToVector(AssertCast<Direction>(randomNumberGenerator.GenerateInt32(0, 3)));
             world.enemies.emplace_back(
                 VisualEntity(&enemyTemplate.Texture, enemyTemplate.Size, enemyTemplate.VerticalOffset, 0,
@@ -45,15 +45,15 @@ std::optional<std::vector<ij::EnemyTemplate>> ij::LoadEnemies(const std::filesys
     }
 
     std::vector<EnemyTemplate> enemies;
-    enemies.emplace_back(enemyTextures[0], sf::Vector2i(64, 64), 4, &cutEnemyTexture<4, 3>);
-    enemies.emplace_back(enemyTextures[1], sf::Vector2i(32, 32), 2, &cutEnemyTexture<3, 3>);
-    enemies.emplace_back(enemyTextures[2], sf::Vector2i(64, 64), 18, &cutEnemyTexture<3, 3>);
-    enemies.emplace_back(enemyTextures[3], sf::Vector2i(64, 64), 17, &cutEnemyTexture<3, 3>);
-    enemies.emplace_back(enemyTextures[4], sf::Vector2i(64, 64), 13, &cutEnemyTexture<3, 3>);
-    enemies.emplace_back(enemyTextures[5], sf::Vector2i(128, 128), 28, &cutEnemyTexture<3, 3>);
-    enemies.emplace_back(enemyTextures[6], sf::Vector2i(64, 64), 10, &cutEnemyTexture<3, 3>);
-    enemies.emplace_back(enemyTextures[7], sf::Vector2i(64, 64), 20, &cutEnemyTexture<3, 3>);
-    enemies.emplace_back(enemyTextures[8], sf::Vector2i(64, 64), 19, &cutEnemyTexture<3, 7>);
-    enemies.emplace_back(enemyTextures[9], sf::Vector2i(64, 64), 18, &cutEnemyTexture<4, 3>);
+    enemies.emplace_back(enemyTextures[0], Vector2i(64, 64), 4, &cutEnemyTexture<4, 3>);
+    enemies.emplace_back(enemyTextures[1], Vector2i(32, 32), 2, &cutEnemyTexture<3, 3>);
+    enemies.emplace_back(enemyTextures[2], Vector2i(64, 64), 18, &cutEnemyTexture<3, 3>);
+    enemies.emplace_back(enemyTextures[3], Vector2i(64, 64), 17, &cutEnemyTexture<3, 3>);
+    enemies.emplace_back(enemyTextures[4], Vector2i(64, 64), 13, &cutEnemyTexture<3, 3>);
+    enemies.emplace_back(enemyTextures[5], Vector2i(128, 128), 28, &cutEnemyTexture<3, 3>);
+    enemies.emplace_back(enemyTextures[6], Vector2i(64, 64), 10, &cutEnemyTexture<3, 3>);
+    enemies.emplace_back(enemyTextures[7], Vector2i(64, 64), 20, &cutEnemyTexture<3, 3>);
+    enemies.emplace_back(enemyTextures[8], Vector2i(64, 64), 19, &cutEnemyTexture<3, 7>);
+    enemies.emplace_back(enemyTextures[9], Vector2i(64, 64), 18, &cutEnemyTexture<4, 3>);
     return enemies;
 }

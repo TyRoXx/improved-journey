@@ -1,7 +1,7 @@
 #pragma once
-#include <SFML/System/Vector2.hpp>
+#include "Vector2.h"
 
 namespace ij
 {
-    [[nodiscard]] sf::Vector2f normalize(const sf::Vector2f &source);
+    [[nodiscard]] Vector2f normalize(const Vector2f &source);
 } // namespace ij

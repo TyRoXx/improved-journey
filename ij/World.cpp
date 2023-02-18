@@ -1,4 +1,5 @@
 #include "World.h"
+#include "ToSfml.h"
 #include <fmt/format.h>
 
 ij::Object::Object(VisualEntity visuals, LogicEntity logic)
@@ -13,12 +14,12 @@ ij::World::World(const sf::Font &font, const Map &map)
 {
 }
 
-[[nodiscard]] ij::Object *ij::FindEnemyByPosition(World &world, const sf::Vector2f &position)
+[[nodiscard]] ij::Object *ij::FindEnemyByPosition(World &world, const Vector2f &position)
 {
     for (Object &enemy : world.enemies)
     {
-        const sf::Vector2f topLeft = enemy.Visuals.GetTopLeftPosition(enemy.Logic.Position);
-        const sf::Vector2f bottomRight = topLeft + sf::Vector2f(enemy.Visuals.SpriteSize);
+        const Vector2f topLeft = enemy.Visuals.GetTopLeftPosition(enemy.Logic.Position);
+        const Vector2f bottomRight = topLeft + AssertCastVector<float>(enemy.Visuals.SpriteSize);
         if ((position.x >= topLeft.x) && (position.x <= bottomRight.x) && (position.y >= topLeft.y) &&
             (position.y <= bottomRight.y))
         {
@@ -28,9 +29,9 @@ ij::World::World(const sf::Font &font, const Map &map)
     return nullptr;
 }
 
-std::vector<ij::Object *> ij::FindEnemiesInCircle(World &world, const sf::Vector2f &center, float radius)
+std::vector<ij::Object *> ij::FindEnemiesInCircle(World &world, const Vector2f &center, float radius)
 {
-    std::vector<ij::Object *> results;
+    std::vector<Object *> results;
     for (Object &enemy : world.enemies)
     {
         if (isWithinDistance(center, enemy.Logic.Position, radius))
@@ -70,16 +71,16 @@ void ij::InflictDamage(LogicEntity &damaged, World &world, const Health damage, 
     world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font, random);
 }
 
-bool ij::isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, const float distance)
+bool ij::isWithinDistance(const Vector2f &first, const Vector2f &second, const float distance)
 {
     const float xDiff = (first.x - second.x);
     const float yDiff = (first.y - second.y);
     return (distance * distance) >= ((xDiff * xDiff) + (yDiff * yDiff));
 }
 
-sf::Vector2f ij::GenerateRandomPointForSpawning(const World &world, RandomNumberGenerator &randomNumberGenerator)
+ij::Vector2f ij::GenerateRandomPointForSpawning(const World &world, RandomNumberGenerator &randomNumberGenerator)
 {
-    sf::Vector2f position;
+    Vector2f position(0, 0);
     size_t attempt = 0;
     do
     {

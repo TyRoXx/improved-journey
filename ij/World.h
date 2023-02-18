@@ -27,12 +27,12 @@ namespace ij
         explicit World(const sf::Font &font, const Map &map);
     };
 
-    [[nodiscard]] Object *FindEnemyByPosition(World &world, const sf::Vector2f &position);
-    [[nodiscard]] std::vector<Object *> FindEnemiesInCircle(World &world, const sf::Vector2f &center, float radius);
+    [[nodiscard]] Object *FindEnemyByPosition(World &world, const Vector2f &position);
+    [[nodiscard]] std::vector<Object *> FindEnemiesInCircle(World &world, const Vector2f &center, float radius);
     void InflictDamage(LogicEntity &damaged, World &world, Health damage, RandomNumberGenerator &random);
-    [[nodiscard]] bool isWithinDistance(const sf::Vector2f &first, const sf::Vector2f &second, float distance);
-    [[nodiscard]] sf::Vector2f GenerateRandomPointForSpawning(const World &world,
-                                                              RandomNumberGenerator &randomNumberGenerator);
+    [[nodiscard]] bool isWithinDistance(const Vector2f &first, const Vector2f &second, float distance);
+    [[nodiscard]] Vector2f GenerateRandomPointForSpawning(const World &world,
+                                                          RandomNumberGenerator &randomNumberGenerator);
     void UpdateWorld(sf::Time &remainingSimulationTime, LogicEntity &player, World &world,
                      RandomNumberGenerator &randomNumberGenerator);
 } // namespace ij

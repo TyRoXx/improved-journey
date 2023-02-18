@@ -8,11 +8,11 @@
 namespace ij
 {
     using TextureCutter = sf::IntRect(ObjectAnimation animation, Int32 animationTime, Direction direction,
-                                      const sf::Vector2i &size);
+                                      const Vector2i &size);
 
     template <Int32 WalkFrames, Int32 AttackFrames>
     sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const Int32 animationTime, const Direction direction,
-                                const sf::Vector2i &size)
+                                const Vector2i &size)
     {
         switch (animation)
         {
@@ -30,5 +30,5 @@ namespace ij
     }
 
     sf::IntRect CutWolfTexture(ObjectAnimation animation, Int32 animationTime, Direction direction,
-                               const sf::Vector2i &size);
+                               const Vector2i &size);
 } // namespace ij

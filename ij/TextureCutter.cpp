@@ -1,7 +1,7 @@
 #include "TextureCutter.h"
 
 sf::IntRect ij::CutWolfTexture(const ObjectAnimation animation, const Int32 animationTime, const Direction direction,
-                               const sf::Vector2i &size)
+                               const Vector2i &size)
 {
     Int32 x = 0;
     Int32 yOffset = 8;

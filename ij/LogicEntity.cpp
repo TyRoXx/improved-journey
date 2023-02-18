@@ -9,8 +9,8 @@ bool ij::isDead(const LogicEntity &entity)
 
 ij::ObjectBehavior::~ObjectBehavior() = default;
 
-ij::LogicEntity::LogicEntity(std::unique_ptr<ObjectBehavior> behavior, const sf::Vector2f &position,
-                             const sf::Vector2f &direction, bool hasCollisionWithWalls, bool hasBumpedIntoWall,
+ij::LogicEntity::LogicEntity(std::unique_ptr<ObjectBehavior> behavior, const Vector2f &position,
+                             const Vector2f &direction, bool hasCollisionWithWalls, bool hasBumpedIntoWall,
                              Health currentHealth, Health maximumHealth, ObjectActivity activity)
     : Behavior(std::move(behavior))
     , Position(position)
@@ -66,7 +66,7 @@ ij::Health ij::LogicEntity::GetMaximumHealth() const
     return maximumHealth;
 }
 
-[[nodiscard]] bool ij::IsWalkablePoint(const sf::Vector2f &point, const World &world)
+[[nodiscard]] bool ij::IsWalkablePoint(const Vector2f &point, const World &world)
 {
     const sf::Vector2<ptrdiff_t> tileIndex(
         AssertCast<ptrdiff_t>(std::floor(point.x / TileSize)), AssertCast<ptrdiff_t>(std::floor(point.y / TileSize)));
@@ -83,9 +83,9 @@ ij::Health ij::LogicEntity::GetMaximumHealth() const
     return (tile != NoTile);
 }
 
-[[nodiscard]] bool ij::IsWalkable(const sf::Vector2f &point, const sf::Vector2f &entityDimensions, const World &world)
+[[nodiscard]] bool ij::IsWalkable(const Vector2f &point, const Vector2f &entityDimensions, const World &world)
 {
-    const sf::Vector2f halfDimensions = entityDimensions / 2.0f;
+    const Vector2f halfDimensions = entityDimensions / 2.0f;
     // current heuristic: check the four corners of the bounding box around the entity in addition to the center
     return
         // top left
@@ -93,28 +93,28 @@ ij::Health ij::LogicEntity::GetMaximumHealth() const
         // bottom right
         IsWalkablePoint(point + halfDimensions, world) &&
         // bottom left
-        IsWalkablePoint(point + sf::Vector2f(-halfDimensions.x, halfDimensions.y), world) &&
+        IsWalkablePoint(point + Vector2f(-halfDimensions.x, halfDimensions.y), world) &&
         // top right
-        IsWalkablePoint(point + sf::Vector2f(halfDimensions.x, -halfDimensions.y), world) &&
+        IsWalkablePoint(point + Vector2f(halfDimensions.x, -halfDimensions.y), world) &&
         // center
         IsWalkablePoint(point, world);
 }
 
-void ij::MoveWithCollisionDetection(LogicEntity &entity, const sf::Vector2f &desiredChange, const World &world)
+void ij::MoveWithCollisionDetection(LogicEntity &entity, const Vector2f &desiredChange, const World &world)
 {
-    const sf::Vector2f desiredDestination = (entity.Position + desiredChange);
+    const Vector2f desiredDestination = (entity.Position + desiredChange);
     if (!entity.HasCollisionWithWalls || IsWalkable(desiredDestination, DefaultEntityDimensions, world))
     {
         entity.Position = desiredDestination;
         entity.HasBumpedIntoWall = false;
     }
-    else if (const sf::Vector2f horizontalAlternative = (entity.Position + sf::Vector2f(desiredChange.x, 0));
+    else if (const Vector2f horizontalAlternative = (entity.Position + Vector2f(desiredChange.x, 0));
              IsWalkable(horizontalAlternative, DefaultEntityDimensions, world))
     {
         entity.Position = horizontalAlternative;
         entity.HasBumpedIntoWall = true;
     }
-    else if (const sf::Vector2f verticalAlternative = (entity.Position + sf::Vector2f(0, desiredChange.y));
+    else if (const Vector2f verticalAlternative = (entity.Position + Vector2f(0, desiredChange.y));
              IsWalkable(verticalAlternative, DefaultEntityDimensions, world))
     {
         entity.Position = verticalAlternative;

@@ -15,7 +15,7 @@ void ij::PlayerCharacter::update(LogicEntity &object, LogicEntity &player, World
     (void)player;
     (void)deltaTime;
 
-    sf::Vector2f direction;
+    Vector2f direction(0, 0);
     for (size_t i = 0; i < 4; ++i)
     {
         if (!isDirectionKeyPressed[i])
@@ -24,7 +24,7 @@ void ij::PlayerCharacter::update(LogicEntity &object, LogicEntity &player, World
         }
         direction += DirectionToVector(AssertCast<Direction>(i));
     }
-    if (direction == sf::Vector2f())
+    if ((direction.x == 0) && (direction.y == 0))
     {
         if (isAttackPressed && !isDead(object))
         {

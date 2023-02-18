@@ -13,6 +13,7 @@
 #include <ij/Camera.h>
 #include <ij/EnemyTemplate.h>
 #include <ij/FloatingText.h>
+#include <ij/FromSfml.h>
 #include <ij/Input.h>
 #include <ij/LogicEntity.h>
 #include <ij/Map.h>
@@ -20,6 +21,7 @@
 #include <ij/PlayerCharacter.h>
 #include <ij/RandomNumberGenerator.h>
 #include <ij/TextureCutter.h>
+#include <ij/ToSfml.h>
 #include <ij/VisualEntity.h>
 #include <ij/World.h>
 #include <imgui-SFML.h>
@@ -68,9 +70,9 @@ namespace ij
         return AssertCast<Integer>(std::floor(value));
     }
 
-    sf::Vector2i findTileByCoordinates(const sf::Vector2f &position)
+    Vector2i findTileByCoordinates(const Vector2f &position)
     {
-        return sf::Vector2i(RoundDown<Int32>(position.x / TileSize), RoundDown<Int32>(position.y / TileSize));
+        return Vector2i(RoundDown<Int32>(position.x / TileSize), RoundDown<Int32>(position.y / TileSize));
     }
 
     struct Debugging
@@ -139,9 +141,9 @@ namespace ij
                    Object &player, const sf::Texture &grassTexture, const sf::Time timeSinceLastDraw)
     {
         const sf::Vector2u windowSize = window.getSize();
-        const sf::Vector2i topLeft =
+        const Vector2i topLeft =
             findTileByCoordinates(camera.getWorldFromScreenCoordinates(windowSize, sf::Vector2i(0, 0)));
-        const sf::Vector2i bottomRight =
+        const Vector2i bottomRight =
             findTileByCoordinates(camera.getWorldFromScreenCoordinates(windowSize, sf::Vector2i(window.getSize())));
 
         debugging.tilesDrawnLastFrame = 0;
@@ -226,7 +228,7 @@ namespace ij
             sf::CircleShape circle(1);
             circle.setOutlineColor(sf::Color(0, 255, 0));
             circle.setFillColor(sf::Color(0, 255, 0));
-            circle.setPosition(player.Logic.Position);
+            circle.setPosition(ToSfml(player.Logic.Position));
             window.draw(circle);
         }
         for (const Object *const enemy : visibleEnemies)
@@ -235,15 +237,15 @@ namespace ij
                 sf::CircleShape circle(1);
                 circle.setOutlineColor(sf::Color(255, 0, 0));
                 circle.setFillColor(sf::Color(255, 0, 0));
-                circle.setPosition(enemy->Logic.Position);
+                circle.setPosition(ToSfml(enemy->Logic.Position));
                 window.draw(circle);
             }
 
             if (enemy == input.selectedEnemy)
             {
                 sf::RectangleShape rect;
-                rect.setPosition(enemy->Visuals.GetTopLeftPosition(enemy->Logic.Position));
-                rect.setSize(sf::Vector2f(enemy->Visuals.SpriteSize));
+                rect.setPosition(ToSfml(enemy->Visuals.GetTopLeftPosition(enemy->Logic.Position)));
+                rect.setSize(sf::Vector2f(ToSfml(enemy->Visuals.SpriteSize)));
                 rect.setFillColor(sf::Color::Transparent);
                 rect.setOutlineColor(sf::Color::White);
                 rect.setOutlineThickness(1);
@@ -308,11 +310,10 @@ int main()
     World world(font, map);
     SpawnEnemies(world, numberOfEnemies, *maybeEnemies, randomNumberGenerator);
 
-    Object player(
-        VisualEntity(&wolfsheet1Texture, sf::Vector2i(64, 64), 0, 0, CutWolfTexture, ObjectAnimation::Standing),
-        LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
-                    GenerateRandomPointForSpawning(world, randomNumberGenerator), sf::Vector2f(), true, false, 100, 100,
-                    ObjectActivity::Standing));
+    Object player(VisualEntity(&wolfsheet1Texture, Vector2i(64, 64), 0, 0, CutWolfTexture, ObjectAnimation::Standing),
+                  LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
+                              GenerateRandomPointForSpawning(world, randomNumberGenerator), Vector2f(0, 0), true, false,
+                              100, 100, ObjectActivity::Standing));
 
     Camera camera{player.Logic.Position};
     Debugging debugging;
@@ -340,14 +341,14 @@ int main()
         {
             viewSize *= 2.0f;
         }
-        window.setView(sf::View(camera.Center, viewSize));
+        window.setView(sf::View(ToSfml(camera.Center), viewSize));
 
         DrawWorld(window, camera, input, debugging, world, player, grassTexture, deltaTime);
 
         if (debugging.IsZoomedOut)
         {
             sf::RectangleShape cameraBorder;
-            cameraBorder.setPosition(camera.Center - (sf::Vector2f(window.getSize()) * 0.5f));
+            cameraBorder.setPosition(ToSfml(camera.Center - FromSfml(sf::Vector2f(window.getSize())) * 0.5f));
             cameraBorder.setSize(sf::Vector2f(window.getSize()));
             cameraBorder.setOutlineColor(sf::Color::Red);
             cameraBorder.setOutlineThickness(2);

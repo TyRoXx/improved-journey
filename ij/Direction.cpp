@@ -1,23 +1,23 @@
 #include "Direction.h"
 #include "Unreachable.h"
 
-sf::Vector2f ij::DirectionToVector(Direction direction)
+ij::Vector2f ij::DirectionToVector(Direction direction)
 {
     switch (direction)
     {
     case Direction::Up:
-        return sf::Vector2f(0, -1);
+        return Vector2f(0, -1);
     case Direction::Left:
-        return sf::Vector2f(-1, 0);
+        return Vector2f(-1, 0);
     case Direction::Down:
-        return sf::Vector2f(0, 1);
+        return Vector2f(0, 1);
     case Direction::Right:
-        return sf::Vector2f(1, 0);
+        return Vector2f(1, 0);
     }
     IJ_UNREACHABLE();
 }
 
-ij::Direction ij::DirectionFromVector(const sf::Vector2f &vector)
+ij::Direction ij::DirectionFromVector(const Vector2f &vector)
 {
     if (vector.x >= 0)
     {

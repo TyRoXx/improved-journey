@@ -32,7 +32,7 @@ void ij::Bot::update(LogicEntity &object, LogicEntity &player, World &world, con
                 object.SetActivity(ObjectActivity::Standing);
                 break;
             }
-            object.Direction = normalize(sf::Vector2f(
+            object.Direction = normalize(Vector2f(
                 AssertCast<float>(random.GenerateInt32(0, 9) - 5), AssertCast<float>(random.GenerateInt32(0, 9) - 5)));
         }
         break;

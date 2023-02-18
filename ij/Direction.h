@@ -1,5 +1,5 @@
 #pragma once
-#include <SFML/System/Vector2.hpp>
+#include "Vector2.h"
 
 namespace ij
 {
@@ -11,6 +11,6 @@ namespace ij
         Right
     };
 
-    sf::Vector2f DirectionToVector(Direction direction);
-    Direction DirectionFromVector(const sf::Vector2f &vector);
+    Vector2f DirectionToVector(Direction direction);
+    Direction DirectionFromVector(const Vector2f &vector);
 } // namespace ij
