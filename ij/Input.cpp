@@ -67,7 +67,7 @@ void ij::Input::ProcessEvents(sf::RenderWindow &window, const Camera &camera, Wo
                  (event.mouseButton.button == sf::Mouse::Button::Left))
         {
             const Vector2f pointInWorld = camera.getWorldFromScreenCoordinates(
-                FromSfml(window.getSize()), sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+                FromSfml(window.getSize()), Vector2i(event.mouseButton.x, event.mouseButton.y));
             selectedEnemy = FindEnemyByPosition(world, pointInWorld);
         }
     }

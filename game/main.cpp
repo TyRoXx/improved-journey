@@ -191,9 +191,9 @@ namespace ij
         SfmlCanvas canvas{window};
         const Vector2u windowSize = canvas.GetSize();
         const Vector2i topLeft =
-            findTileByCoordinates(camera.getWorldFromScreenCoordinates(windowSize, sf::Vector2i(0, 0)));
-        const Vector2i bottomRight =
-            findTileByCoordinates(camera.getWorldFromScreenCoordinates(windowSize, sf::Vector2i(window.getSize())));
+            findTileByCoordinates(camera.getWorldFromScreenCoordinates(windowSize, Vector2i(0, 0)));
+        const Vector2i bottomRight = findTileByCoordinates(
+            camera.getWorldFromScreenCoordinates(windowSize, AssertCastVector<Int32>(windowSize)));
 
         debugging.tilesDrawnLastFrame = 0;
         for (size_t y = AssertCast<size_t>((std::max)(0, topLeft.y)),
