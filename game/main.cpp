@@ -179,8 +179,8 @@ namespace ij
         ImGui::End();
     }
 
-    void DrawWorld(sf::RenderWindow &window, Camera &camera, Input &input, Debugging &debugging, World &world,
-                   Object &player, const sf::Texture &grassTexture, const TimeSpan timeSinceLastDraw)
+    void DrawWorld(sf::RenderWindow &window, const Camera &camera, const Input &input, Debugging &debugging,
+                   World &world, Object &player, const sf::Texture &grassTexture, const TimeSpan timeSinceLastDraw)
     {
         SfmlCanvas canvas{window};
         const sf::Vector2u windowSize = window.getSize();
