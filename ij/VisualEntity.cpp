@@ -1,14 +1,15 @@
 #include "VisualEntity.h"
 
-ij::VisualEntity::VisualEntity(const sf::Sprite &sprite, const sf::Vector2i &spriteSize, Int32 verticalOffset,
+ij::VisualEntity::VisualEntity(const sf::Texture *texture, const sf::Vector2i &spriteSize, Int32 verticalOffset,
                                Int32 animationTime, TextureCutter *cutter, ObjectAnimation animation)
-    : Sprite(sprite)
+    : Texture(texture)
     , SpriteSize(spriteSize)
     , VerticalOffset(verticalOffset)
     , AnimationTime(animationTime)
     , Cutter(cutter)
     , Animation(animation)
 {
+    assert(Texture);
 }
 
 sf::Vector2f ij::VisualEntity::GetOffset() const
@@ -17,7 +18,17 @@ sf::Vector2f ij::VisualEntity::GetOffset() const
            sf::Vector2f(0, AssertCast<float>(VerticalOffset));
 }
 
-void ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime)
+sf::IntRect ij::VisualEntity::GetTextureRect(const sf::Vector2f &direction) const
+{
+    return Cutter(Animation, AnimationTime, DirectionFromVector(direction), SpriteSize);
+}
+
+sf::Vector2f ij::VisualEntity::GetTopLeftPosition(const sf::Vector2f &bottomLeftPosition) const
+{
+    return bottomLeftPosition - GetOffset();
+}
+
+sf::Sprite ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime)
 {
     bool isColoredDead = false;
     switch (logic.GetActivity())
@@ -42,9 +53,11 @@ void ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf
     }
 
     visuals.AnimationTime += deltaTime.asMilliseconds();
-    visuals.Sprite.setTextureRect(visuals.Cutter(
-        visuals.Animation, visuals.AnimationTime, DirectionFromVector(logic.Direction), visuals.SpriteSize));
+    assert(visuals.Texture);
+    sf::Sprite result(*visuals.Texture);
+    result.setTextureRect(visuals.GetTextureRect(logic.Direction));
     // the position of an object is at the bottom center of the sprite (on the ground)
-    visuals.Sprite.setPosition(logic.Position - visuals.GetOffset());
-    visuals.Sprite.setColor(isColoredDead ? sf::Color(128, 128, 128, 255) : sf::Color::White);
+    result.setPosition(visuals.GetTopLeftPosition(logic.Position));
+    result.setColor(isColoredDead ? sf::Color(128, 128, 128, 255) : sf::Color::White);
+    return result;
 }

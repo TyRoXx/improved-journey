@@ -22,7 +22,7 @@ void ij::SpawnEnemies(World &world, const size_t numberOfEnemies, const std::vec
             const sf::Vector2f direction =
                 DirectionToVector(AssertCast<Direction>(randomNumberGenerator.GenerateInt32(0, 3)));
             world.enemies.emplace_back(
-                VisualEntity(sf::Sprite(enemyTemplate.Texture), enemyTemplate.Size, enemyTemplate.VerticalOffset, 0,
+                VisualEntity(&enemyTemplate.Texture, enemyTemplate.Size, enemyTemplate.VerticalOffset, 0,
                              enemyTemplate.Cutter, ObjectAnimation::Standing),
                 LogicEntity(
                     std::make_unique<Bot>(), position, direction, true, false, 100, 100, ObjectActivity::Standing));

@@ -42,7 +42,8 @@ namespace ij
         constexpr Int32 width = 24;
         constexpr Int32 height = 4;
         const float x = object.Logic.Position.x - AssertCast<float>(width) / 2;
-        const float y = object.Logic.Position.y - AssertCast<float>(object.Visuals.Sprite.getTextureRect().height);
+        const float y =
+            object.Logic.Position.y - AssertCast<float>(object.Visuals.GetTextureRect(object.Logic.Direction).height);
         const float greenPortion = AssertCast<float>(object.Logic.GetCurrentHealth()) /
                                    AssertCast<float>(object.Logic.GetMaximumHealth()) * AssertCast<float>(width);
         {
@@ -189,19 +190,18 @@ namespace ij
         }
 
         std::vector<const Object *> visibleEnemies;
-        std::vector<const sf::Sprite *> spritesToDrawInZOrder;
+        std::vector<sf::Sprite> spritesToDrawInZOrder;
 
-        updateVisuals(player.Logic, player.Visuals, timeSinceLastDraw);
-        spritesToDrawInZOrder.emplace_back(&player.Visuals.Sprite);
+        spritesToDrawInZOrder.emplace_back(updateVisuals(player.Logic, player.Visuals, timeSinceLastDraw));
 
         debugging.enemiesDrawnLastFrame = 0;
         for (Object &enemy : world.enemies)
         {
-            updateVisuals(enemy.Logic, enemy.Visuals, timeSinceLastDraw);
-            if (camera.canSee(windowSize, enemy.Visuals))
+            sf::Sprite sprite = updateVisuals(enemy.Logic, enemy.Visuals, timeSinceLastDraw);
+            if (camera.canSee(windowSize, enemy.Logic.Position, enemy.Visuals))
             {
                 visibleEnemies.push_back(&enemy);
-                spritesToDrawInZOrder.emplace_back(&enemy.Visuals.Sprite);
+                spritesToDrawInZOrder.emplace_back(sprite);
                 ++debugging.enemiesDrawnLastFrame;
             }
         }
@@ -223,13 +223,12 @@ namespace ij
             }
         }
 
-        std::sort(spritesToDrawInZOrder.begin(), spritesToDrawInZOrder.end(),
-                  [](const sf::Sprite *const left, const sf::Sprite *const right) -> bool {
-                      return (bottomOfSprite(*left) < bottomOfSprite(*right));
-                  });
-        for (const sf::Sprite *const sprite : spritesToDrawInZOrder)
+        std::ranges::sort(spritesToDrawInZOrder, [](const sf::Sprite &left, const sf::Sprite &right) -> bool {
+            return (bottomOfSprite(left) < bottomOfSprite(right));
+        });
+        for (const sf::Sprite &sprite : spritesToDrawInZOrder)
         {
-            window.draw(*sprite);
+            window.draw(sprite);
         }
 
         for (FloatingText &floatingText : world.FloatingTexts)
@@ -263,7 +262,7 @@ namespace ij
             if (enemy == input.selectedEnemy)
             {
                 sf::RectangleShape rect;
-                rect.setPosition(enemy->Logic.Position - enemy->Visuals.GetOffset());
+                rect.setPosition(enemy->Visuals.GetTopLeftPosition(enemy->Logic.Position));
                 rect.setSize(sf::Vector2f(enemy->Visuals.SpriteSize));
                 rect.setFillColor(sf::Color::Transparent);
                 rect.setOutlineColor(sf::Color::White);
@@ -330,11 +329,11 @@ int main()
     World world(font, map);
     SpawnEnemies(world, numberOfEnemies, *maybeEnemies, randomNumberGenerator);
 
-    Object player(VisualEntity(sf::Sprite(wolfsheet1Texture), sf::Vector2i(64, 64), 0, 0, CutWolfTexture,
-                               ObjectAnimation::Standing),
-                  LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
-                              GenerateRandomPointForSpawning(world, randomNumberGenerator), sf::Vector2f(), true, false,
-                              100, 100, ObjectActivity::Standing));
+    Object player(
+        VisualEntity(&wolfsheet1Texture, sf::Vector2i(64, 64), 0, 0, CutWolfTexture, ObjectAnimation::Standing),
+        LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
+                    GenerateRandomPointForSpawning(world, randomNumberGenerator), sf::Vector2f(), true, false, 100, 100,
+                    ObjectActivity::Standing));
 
     Camera camera{player.Logic.Position};
     Debugging debugging;

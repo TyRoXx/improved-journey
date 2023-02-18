@@ -17,7 +17,7 @@ ij::World::World(const sf::Font &font, const Map &map)
 {
     for (Object &enemy : world.enemies)
     {
-        const sf::Vector2f topLeft = enemy.Logic.Position - enemy.Visuals.GetOffset();
+        const sf::Vector2f topLeft = enemy.Visuals.GetTopLeftPosition(enemy.Logic.Position);
         const sf::Vector2f bottomRight = topLeft + sf::Vector2f(enemy.Visuals.SpriteSize);
         if ((position.x >= topLeft.x) && (position.x <= bottomRight.x) && (position.y >= topLeft.y) &&
             (position.y <= bottomRight.y))
