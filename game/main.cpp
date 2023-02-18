@@ -318,7 +318,7 @@ int main()
     Camera camera{player.Logic.Position};
     Debugging debugging;
     sf::Clock deltaClock;
-    sf::Time remainingSimulationTime;
+    TimeSpan remainingSimulationTime = TimeSpan::FromMilliseconds(0);
     while (window.isOpen())
     {
         input.ProcessEvents(window, camera, world);
@@ -328,7 +328,7 @@ int main()
         debugging.NextFrameTime = (debugging.NextFrameTime + 1) % debugging.FrameTimes.size();
 
         // fix the time step to make physics and NPC behaviour independent from the frame rate
-        remainingSimulationTime += deltaTime;
+        remainingSimulationTime += TimeSpan::FromMilliseconds(deltaTime.asMilliseconds());
         UpdateWorld(remainingSimulationTime, player.Logic, world, randomNumberGenerator);
 
         UpdateUserInterface(window, deltaTime, player.Logic, world, input, debugging);

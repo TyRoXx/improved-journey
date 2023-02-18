@@ -1,5 +1,5 @@
 #pragma once
-#include "Int.h"
+#include "TimeSpan.h"
 #include "Vector2.h"
 #include <SFML/System/Time.hpp>
 #include <memory>
@@ -24,7 +24,7 @@ namespace ij
     struct ObjectBehavior
     {
         virtual ~ObjectBehavior();
-        virtual void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+        virtual void update(LogicEntity &object, LogicEntity &player, World &world, TimeSpan deltaTime,
                             RandomNumberGenerator &random) = 0;
     };
 
@@ -59,6 +59,6 @@ namespace ij
     [[nodiscard]] bool IsWalkablePoint(const Vector2f &point, const World &world);
     [[nodiscard]] bool IsWalkable(const Vector2f &point, const Vector2f &entityDimensions, const World &world);
     void MoveWithCollisionDetection(LogicEntity &entity, const Vector2f &desiredChange, const World &world);
-    void updateLogic(LogicEntity &entity, LogicEntity &player, World &world, const sf::Time &deltaTime,
+    void updateLogic(LogicEntity &entity, LogicEntity &player, World &world, TimeSpan deltaTime,
                      RandomNumberGenerator &random);
 } // namespace ij

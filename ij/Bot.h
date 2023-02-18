@@ -7,7 +7,7 @@ namespace ij
 {
     struct Bot final : ObjectBehavior
     {
-        void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+        void update(LogicEntity &object, LogicEntity &player, World &world, TimeSpan deltaTime,
                     RandomNumberGenerator &random) override;
 
         enum class State
@@ -24,6 +24,6 @@ namespace ij
     private:
         State _state = State::MovingAround;
         LogicEntity *_target = nullptr;
-        Int32 _sinceLastAttack = 0;
+        TimeSpan _sinceLastAttack = TimeSpan::FromMilliseconds(0);
     };
 } // namespace ij

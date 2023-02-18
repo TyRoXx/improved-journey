@@ -11,7 +11,7 @@ namespace ij
         bool &isAttackPressed;
 
         explicit PlayerCharacter(const std::array<bool, 4> &isDirectionKeyPressed, bool &isAttackPressed);
-        void update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+        void update(LogicEntity &object, LogicEntity &player, World &world, TimeSpan deltaTime,
                     RandomNumberGenerator &random) override;
     };
 

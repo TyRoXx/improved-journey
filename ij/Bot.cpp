@@ -2,7 +2,7 @@
 #include "Normalize.h"
 #include "Unreachable.h"
 
-void ij::Bot::update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+void ij::Bot::update(LogicEntity &object, LogicEntity &player, World &world, const TimeSpan deltaTime,
                      RandomNumberGenerator &random)
 {
     (void)world;
@@ -70,8 +70,8 @@ void ij::Bot::update(LogicEntity &object, LogicEntity &player, World &world, con
             object.SetActivity(ObjectActivity::Standing);
             break;
         }
-        _sinceLastAttack += deltaTime.asMilliseconds();
-        constexpr Int32 attackDelay = 1000;
+        _sinceLastAttack += deltaTime;
+        const TimeSpan attackDelay = TimeSpan::FromMilliseconds(1000);
         while (_sinceLastAttack >= attackDelay)
         {
             object.SetActivity(ObjectActivity::Attacking);

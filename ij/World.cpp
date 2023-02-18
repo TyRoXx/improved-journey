@@ -95,10 +95,10 @@ ij::Vector2f ij::GenerateRandomPointForSpawning(const World &world, RandomNumber
     return position;
 }
 
-void ij::UpdateWorld(sf::Time &remainingSimulationTime, LogicEntity &player, World &world,
+void ij::UpdateWorld(TimeSpan &remainingSimulationTime, LogicEntity &player, World &world,
                      RandomNumberGenerator &randomNumberGenerator)
 {
-    const sf::Time simulationTimeStep = sf::milliseconds(AssertCast<Int32>(1000 / FrameRate));
+    const TimeSpan simulationTimeStep = TimeSpan::FromMilliseconds(AssertCast<Int64>(1000 / FrameRate));
     while (remainingSimulationTime >= simulationTimeStep)
     {
         remainingSimulationTime -= simulationTimeStep;

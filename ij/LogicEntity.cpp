@@ -126,7 +126,7 @@ void ij::MoveWithCollisionDetection(LogicEntity &entity, const Vector2f &desired
     }
 }
 
-void ij::updateLogic(LogicEntity &entity, LogicEntity &player, World &world, const sf::Time &deltaTime,
+void ij::updateLogic(LogicEntity &entity, LogicEntity &player, World &world, const TimeSpan deltaTime,
                      RandomNumberGenerator &random)
 {
     entity.Behavior->update(entity, player, world, deltaTime, random);
@@ -139,8 +139,8 @@ void ij::updateLogic(LogicEntity &entity, LogicEntity &player, World &world, con
         break;
 
     case ObjectActivity::Walking: {
-        constexpr float velocity = 80;
-        const auto change = entity.Direction * deltaTime.asSeconds() * velocity;
+        constexpr float velocity = 0.08f;
+        const Vector2f change = entity.Direction * (AssertCast<float>(deltaTime.Milliseconds) * velocity);
         MoveWithCollisionDetection(entity, change, world);
         break;
     }

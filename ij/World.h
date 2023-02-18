@@ -33,6 +33,6 @@ namespace ij
     [[nodiscard]] bool isWithinDistance(const Vector2f &first, const Vector2f &second, float distance);
     [[nodiscard]] Vector2f GenerateRandomPointForSpawning(const World &world,
                                                           RandomNumberGenerator &randomNumberGenerator);
-    void UpdateWorld(sf::Time &remainingSimulationTime, LogicEntity &player, World &world,
+    void UpdateWorld(TimeSpan &remainingSimulationTime, LogicEntity &player, World &world,
                      RandomNumberGenerator &randomNumberGenerator);
 } // namespace ij

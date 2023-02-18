@@ -8,7 +8,7 @@ ij::PlayerCharacter::PlayerCharacter(const std::array<bool, 4> &isDirectionKeyPr
 {
 }
 
-void ij::PlayerCharacter::update(LogicEntity &object, LogicEntity &player, World &world, const sf::Time &deltaTime,
+void ij::PlayerCharacter::update(LogicEntity &object, LogicEntity &player, World &world, const TimeSpan deltaTime,
                                  RandomNumberGenerator &random)
 {
     assert(&object == &player);
