@@ -1,18 +1,18 @@
 #pragma once
 #include "AssertCast.h"
 #include "Direction.h"
+#include "Int.h"
 #include "ObjectAnimation.h"
-#include <SFML/Config.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
 namespace ij
 {
-    using TextureCutter = sf::IntRect(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
+    using TextureCutter = sf::IntRect(ObjectAnimation animation, Int32 animationTime, Direction direction,
                                       const sf::Vector2i &size);
 
-    template <sf::Int32 WalkFrames, sf::Int32 AttackFrames>
-    sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const sf::Int32 animationTime,
-                                const Direction direction, const sf::Vector2i &size)
+    template <Int32 WalkFrames, Int32 AttackFrames>
+    sf::IntRect cutEnemyTexture(const ObjectAnimation animation, const Int32 animationTime, const Direction direction,
+                                const sf::Vector2i &size)
     {
         switch (animation)
         {
@@ -29,6 +29,6 @@ namespace ij
             size.x * ((animationTime / 150) % WalkFrames), size.y * AssertCast<int>(direction), size.x, size.y);
     }
 
-    sf::IntRect CutWolfTexture(ObjectAnimation animation, sf::Int32 animationTime, Direction direction,
+    sf::IntRect CutWolfTexture(ObjectAnimation animation, Int32 animationTime, Direction direction,
                                const sf::Vector2i &size);
 } // namespace ij

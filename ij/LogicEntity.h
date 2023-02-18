@@ -1,5 +1,5 @@
 #pragma once
-#include <SFML/Config.hpp>
+#include "Int.h"
 #include <SFML/System/Time.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <memory>
@@ -28,7 +28,7 @@ namespace ij
                             RandomNumberGenerator &random) = 0;
     };
 
-    using Health = sf::Int32;
+    using Health = Int32;
 
     struct LogicEntity final
     {

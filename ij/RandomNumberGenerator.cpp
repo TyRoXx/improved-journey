@@ -7,9 +7,9 @@ ij::StandardRandomNumberGenerator::StandardRandomNumberGenerator()
 {
 }
 
-sf::Int32 ij::StandardRandomNumberGenerator::GenerateInt32(sf::Int32 minimum, sf::Int32 maximum)
+ij::Int32 ij::StandardRandomNumberGenerator::GenerateInt32(Int32 minimum, Int32 maximum)
 {
-    std::uniform_int_distribution<sf::Int32> distribution(minimum, maximum);
+    std::uniform_int_distribution<Int32> distribution(minimum, maximum);
     return distribution(engine);
 }
 

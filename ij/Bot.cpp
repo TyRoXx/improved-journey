@@ -71,7 +71,7 @@ void ij::Bot::update(LogicEntity &object, LogicEntity &player, World &world, con
             break;
         }
         _sinceLastAttack += deltaTime.asMilliseconds();
-        constexpr sf::Int32 attackDelay = 1000;
+        constexpr Int32 attackDelay = 1000;
         while (_sinceLastAttack >= attackDelay)
         {
             object.SetActivity(ObjectActivity::Attacking);

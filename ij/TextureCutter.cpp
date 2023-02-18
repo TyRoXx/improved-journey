@@ -1,10 +1,10 @@
 #include "TextureCutter.h"
 
-sf::IntRect ij::CutWolfTexture(const ObjectAnimation animation, const sf::Int32 animationTime,
-                               const Direction direction, const sf::Vector2i &size)
+sf::IntRect ij::CutWolfTexture(const ObjectAnimation animation, const Int32 animationTime, const Direction direction,
+                               const sf::Vector2i &size)
 {
-    sf::Int32 x = 0;
-    sf::Int32 yOffset = 8;
+    Int32 x = 0;
+    Int32 yOffset = 8;
     switch (animation)
     {
     case ObjectAnimation::Standing:

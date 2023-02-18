@@ -39,8 +39,8 @@ namespace ij
         {
             return;
         }
-        constexpr sf::Int32 width = 24;
-        constexpr sf::Int32 height = 4;
+        constexpr Int32 width = 24;
+        constexpr Int32 height = 4;
         const float x = object.Logic.Position.x - AssertCast<float>(width) / 2;
         const float y = object.Logic.Position.y - AssertCast<float>(object.Visuals.Sprite.getTextureRect().height);
         const float greenPortion = AssertCast<float>(object.Logic.GetCurrentHealth()) /
@@ -90,7 +90,7 @@ namespace ij
 
     sf::Vector2i findTileByCoordinates(const sf::Vector2f &position)
     {
-        return sf::Vector2i(RoundDown<sf::Int32>(position.x / TileSize), RoundDown<sf::Int32>(position.y / TileSize));
+        return sf::Vector2i(RoundDown<Int32>(position.x / TileSize), RoundDown<Int32>(position.y / TileSize));
     }
 
     struct Debugging

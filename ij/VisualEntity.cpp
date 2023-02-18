@@ -1,7 +1,7 @@
 #include "VisualEntity.h"
 
-ij::VisualEntity::VisualEntity(const sf::Sprite &sprite, const sf::Vector2i &spriteSize, sf::Int32 verticalOffset,
-                               sf::Int32 animationTime, TextureCutter *cutter, ObjectAnimation animation)
+ij::VisualEntity::VisualEntity(const sf::Sprite &sprite, const sf::Vector2i &spriteSize, Int32 verticalOffset,
+                               Int32 animationTime, TextureCutter *cutter, ObjectAnimation animation)
     : Sprite(sprite)
     , SpriteSize(spriteSize)
     , VerticalOffset(verticalOffset)

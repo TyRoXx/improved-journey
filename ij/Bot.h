@@ -24,6 +24,6 @@ namespace ij
     private:
         State _state = State::MovingAround;
         LogicEntity *_target = nullptr;
-        sf::Int32 _sinceLastAttack = 0;
+        Int32 _sinceLastAttack = 0;
     };
 } // namespace ij

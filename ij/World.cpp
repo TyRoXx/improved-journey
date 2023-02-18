@@ -86,10 +86,9 @@ sf::Vector2f ij::GenerateRandomPointForSpawning(const World &world, RandomNumber
         ++attempt;
         assert(attempt < 100);
         position.x = AssertCast<float>(
-            TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(world.map.Width - 1)) +
-            (TileSize / 2));
+            TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<Int32>(world.map.Width - 1)) + (TileSize / 2));
         position.y = AssertCast<float>(
-            TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<sf::Int32>(world.map.GetHeight() - 1)) +
+            TileSize * randomNumberGenerator.GenerateInt32(0, AssertCast<Int32>(world.map.GetHeight() - 1)) +
             (TileSize / 2));
     } while (!IsWalkable(position, DefaultEntityDimensions, world));
     return position;
@@ -98,7 +97,7 @@ sf::Vector2f ij::GenerateRandomPointForSpawning(const World &world, RandomNumber
 void ij::UpdateWorld(sf::Time &remainingSimulationTime, LogicEntity &player, World &world,
                      RandomNumberGenerator &randomNumberGenerator)
 {
-    const sf::Time simulationTimeStep = sf::milliseconds(AssertCast<sf::Int32>(1000 / FrameRate));
+    const sf::Time simulationTimeStep = sf::milliseconds(AssertCast<Int32>(1000 / FrameRate));
     while (remainingSimulationTime >= simulationTimeStep)
     {
         remainingSimulationTime -= simulationTimeStep;
