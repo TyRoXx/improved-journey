@@ -2,7 +2,7 @@
 #include "ToSfml.h"
 
 ij::VisualEntity::VisualEntity(const sf::Texture *texture, const Vector2i &spriteSize, Int32 verticalOffset,
-                               Int32 animationTime, TextureCutter *cutter, ObjectAnimation animation)
+                               TimeSpan animationTime, TextureCutter *cutter, ObjectAnimation animation)
     : Texture(texture)
     , SpriteSize(spriteSize)
     , VerticalOffset(verticalOffset)
@@ -29,7 +29,7 @@ ij::Vector2f ij::VisualEntity::GetTopLeftPosition(const Vector2f &bottomLeftPosi
     return bottomLeftPosition - GetOffset();
 }
 
-void ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime)
+void ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const TimeSpan deltaTime)
 {
     switch (logic.GetActivity())
     {
@@ -50,7 +50,7 @@ void ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf
         break;
     }
     }
-    visuals.AnimationTime += deltaTime.asMilliseconds();
+    visuals.AnimationTime += deltaTime;
 }
 
 sf::Sprite ij::CreateSpriteForVisualEntity(const LogicEntity &logic, const VisualEntity &visuals)

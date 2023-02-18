@@ -1,6 +1,6 @@
 #include "TextureCutter.h"
 
-sf::IntRect ij::CutWolfTexture(const ObjectAnimation animation, const Int32 animationTime, const Direction direction,
+sf::IntRect ij::CutWolfTexture(const ObjectAnimation animation, const TimeSpan animationTime, const Direction direction,
                                const Vector2i &size)
 {
     Int32 x = 0;
@@ -11,12 +11,12 @@ sf::IntRect ij::CutWolfTexture(const ObjectAnimation animation, const Int32 anim
         break;
 
     case ObjectAnimation::Walking:
-        x = (size.x * ((animationTime / 80) % 9));
+        x = AssertCast<Int32>(size.x * ((animationTime.Milliseconds / 80) % 9));
         break;
 
     case ObjectAnimation::Attacking:
         yOffset = 0;
-        x = (size.x * ((animationTime / 80) % 7));
+        x = AssertCast<Int32>(size.x * ((animationTime.Milliseconds / 80) % 7));
         break;
 
     case ObjectAnimation::Dead:

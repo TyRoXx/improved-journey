@@ -1,7 +1,6 @@
 #pragma once
 #include "TimeSpan.h"
 #include "Vector2.h"
-#include <SFML/System/Time.hpp>
 #include <memory>
 
 namespace ij

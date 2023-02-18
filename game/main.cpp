@@ -84,10 +84,8 @@ namespace ij
         bool IsZoomedOut = false;
     };
 
-    void UpdateUserInterface(sf::RenderWindow &window, const sf::Time deltaTime, LogicEntity &player,
-                             const World &world, const Input &input, Debugging &debugging)
+    void UpdateUserInterface(LogicEntity &player, const World &world, const Input &input, Debugging &debugging)
     {
-        ImGui::SFML::Update(window, deltaTime);
         ImGui::Begin("Character");
         {
             ImGui::Text("Health");
@@ -138,7 +136,7 @@ namespace ij
     }
 
     void DrawWorld(sf::RenderWindow &window, Camera &camera, Input &input, Debugging &debugging, World &world,
-                   Object &player, const sf::Texture &grassTexture, const sf::Time timeSinceLastDraw)
+                   Object &player, const sf::Texture &grassTexture, const TimeSpan timeSinceLastDraw)
     {
         const sf::Vector2u windowSize = window.getSize();
         const Vector2i topLeft =
@@ -310,7 +308,8 @@ int main()
     World world(font, map);
     SpawnEnemies(world, numberOfEnemies, *maybeEnemies, randomNumberGenerator);
 
-    Object player(VisualEntity(&wolfsheet1Texture, Vector2i(64, 64), 0, 0, CutWolfTexture, ObjectAnimation::Standing),
+    Object player(VisualEntity(&wolfsheet1Texture, Vector2i(64, 64), 0, TimeSpan::FromMilliseconds(0), CutWolfTexture,
+                               ObjectAnimation::Standing),
                   LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
                               GenerateRandomPointForSpawning(world, randomNumberGenerator), Vector2f(0, 0), true, false,
                               100, 100, ObjectActivity::Standing));
@@ -323,15 +322,17 @@ int main()
     {
         input.ProcessEvents(window, camera, world);
 
-        const sf::Time deltaTime = deltaClock.restart();
-        debugging.FrameTimes[debugging.NextFrameTime] = AssertCast<float>(deltaTime.asMilliseconds());
+        const sf::Time sfmlDeltaTime = deltaClock.restart();
+        const TimeSpan deltaTime = TimeSpan::FromMilliseconds(sfmlDeltaTime.asMilliseconds());
+        debugging.FrameTimes[debugging.NextFrameTime] = AssertCast<float>(deltaTime.Milliseconds);
         debugging.NextFrameTime = (debugging.NextFrameTime + 1) % debugging.FrameTimes.size();
 
         // fix the time step to make physics and NPC behaviour independent from the frame rate
-        remainingSimulationTime += TimeSpan::FromMilliseconds(deltaTime.asMilliseconds());
+        remainingSimulationTime += deltaTime;
         UpdateWorld(remainingSimulationTime, player.Logic, world, randomNumberGenerator);
 
-        UpdateUserInterface(window, deltaTime, player.Logic, world, input, debugging);
+        ImGui::SFML::Update(window, sfmlDeltaTime);
+        UpdateUserInterface(player.Logic, world, input, debugging);
 
         window.clear();
 
