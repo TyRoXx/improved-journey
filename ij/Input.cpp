@@ -1,4 +1,5 @@
 #include "Input.h"
+#include "FromSfml.h"
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
@@ -66,7 +67,7 @@ void ij::Input::ProcessEvents(sf::RenderWindow &window, const Camera &camera, Wo
                  (event.mouseButton.button == sf::Mouse::Button::Left))
         {
             const Vector2f pointInWorld = camera.getWorldFromScreenCoordinates(
-                window.getSize(), sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+                FromSfml(window.getSize()), sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
             selectedEnemy = FindEnemyByPosition(world, pointInWorld);
         }
     }

@@ -53,6 +53,7 @@ namespace ij
         virtual ~Canvas()
         {
         }
+        [[nodiscard]] virtual Vector2u GetSize() = 0;
         virtual void DrawDot(const Vector2i &position, Color color) = 0;
         virtual void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, Color outline, Color fill) = 0;
     };
@@ -64,6 +65,11 @@ namespace ij
         explicit SfmlCanvas(sf::RenderWindow &window)
             : Window(window)
         {
+        }
+
+        [[nodiscard]] Vector2u GetSize() override
+        {
+            return FromSfml(Window.getSize());
         }
 
         void DrawDot(const Vector2i &position, const Color color) override
@@ -183,7 +189,7 @@ namespace ij
                    World &world, Object &player, const sf::Texture &grassTexture, const TimeSpan timeSinceLastDraw)
     {
         SfmlCanvas canvas{window};
-        const sf::Vector2u windowSize = window.getSize();
+        const Vector2u windowSize = canvas.GetSize();
         const Vector2i topLeft =
             findTileByCoordinates(camera.getWorldFromScreenCoordinates(windowSize, sf::Vector2i(0, 0)));
         const Vector2i bottomRight =
