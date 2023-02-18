@@ -186,7 +186,7 @@ namespace ij
     }
 
     void DrawWorld(sf::RenderWindow &window, TextureManager &textures, const Camera &camera, const Input &input,
-                   Debugging &debugging, World &world, Object &player, const sf::Texture &grassTexture,
+                   Debugging &debugging, World &world, Object &player, const TextureId grassTexture,
                    const TimeSpan timeSinceLastDraw)
     {
         SfmlCanvas canvas{window, textures};
@@ -212,10 +212,10 @@ namespace ij
                 {
                     continue;
                 }
-                sf::Sprite grass(grassTexture);
-                grass.setTextureRect(sf::IntRect(tile * TileSize, 160, TileSize, TileSize));
-                grass.setPosition(sf::Vector2f(AssertCast<float>(x) * TileSize, AssertCast<float>(y) * TileSize));
-                window.draw(grass);
+                canvas.DrawSprite(Sprite(grassTexture,
+                                         Vector2i(AssertCast<Int32>(x) * TileSize, AssertCast<Int32>(y) * TileSize),
+                                         Color(255, 255, 255, 255), Vector2u(AssertCast<UInt32>(tile) * TileSize, 160),
+                                         Vector2u(TileSize, TileSize)));
                 ++debugging.tilesDrawnLastFrame;
             }
         }
@@ -314,7 +314,7 @@ int main()
     assert(std::filesystem::exists(wolfsheet1File));
 
     TextureManager textures;
-    std::optional<TextureId> wolfsheet1Texture = textures.LoadFromFile(wolfsheet1File);
+    const std::optional<TextureId> wolfsheet1Texture = textures.LoadFromFile(wolfsheet1File);
     if (!wolfsheet1Texture)
     {
         std::cerr << "Could not load player texture\n";
@@ -322,8 +322,8 @@ int main()
     }
 
     const std::filesystem::path grassFile = (assets / "LPC Base Assets" / "tiles" / "grass.png");
-    sf::Texture grassTexture;
-    if (!grassTexture.loadFromFile(grassFile.string()))
+    const std::optional<TextureId> grassTexture = textures.LoadFromFile(grassFile);
+    if (!grassTexture)
     {
         std::cerr << "Could not load grass texture\n";
         return 1;
@@ -381,7 +381,7 @@ int main()
         }
         window.setView(sf::View(ToSfml(camera.Center), viewSize));
 
-        DrawWorld(window, textures, camera, input, debugging, world, player, grassTexture, deltaTime);
+        DrawWorld(window, textures, camera, input, debugging, world, player, *grassTexture, deltaTime);
 
         if (debugging.IsZoomedOut)
         {
