@@ -1,6 +1,7 @@
 #pragma once
 #include "AssertCast.h"
 #include "Int.h"
+#include <cmath>
 
 namespace ij
 {
@@ -52,6 +53,18 @@ namespace ij
     Vector2<To> AssertCastVector(const Vector2<From> &from) noexcept
     {
         return {AssertCast<To>(from.x), AssertCast<To>(from.y)};
+    }
+
+    template <class Integer>
+    Integer RoundDown(const float value)
+    {
+        return AssertCast<Integer>(std::floor(value));
+    }
+
+    template <class To, class From>
+    Vector2<To> RoundDown(const Vector2<From> &from) noexcept
+    {
+        return {RoundDown<To>(from.x), RoundDown<To>(from.y)};
     }
 
     using Vector2f = Vector2<float>;

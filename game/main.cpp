@@ -64,12 +64,6 @@ namespace ij
         }
     }
 
-    template <class Integer>
-    Integer RoundDown(const float value)
-    {
-        return AssertCast<Integer>(std::floor(value));
-    }
-
     Vector2i findTileByCoordinates(const Vector2f &position)
     {
         return Vector2i(RoundDown<Int32>(position.x / TileSize), RoundDown<Int32>(position.y / TileSize));
@@ -135,9 +129,55 @@ namespace ij
         ImGui::End();
     }
 
+    struct Color final
+    {
+        std::uint8_t Red, Green, Blue, Alpha;
+
+        Color(std::uint8_t red, std::uint8_t green, std::uint8_t blue, std::uint8_t alpha) noexcept
+            : Red(red)
+            , Green(green)
+            , Blue(blue)
+            , Alpha(alpha)
+        {
+        }
+    };
+
+    sf::Color ToSfml(const Color &value) noexcept
+    {
+        return sf::Color(value.Red, value.Green, value.Blue, value.Alpha);
+    }
+
+    struct Canvas
+    {
+        virtual ~Canvas()
+        {
+        }
+        virtual void DrawDot(const Vector2i &position, Color color) = 0;
+    };
+
+    struct SfmlCanvas final : Canvas
+    {
+        sf::RenderWindow &Window;
+
+        explicit SfmlCanvas(sf::RenderWindow &window)
+            : Window(window)
+        {
+        }
+
+        void DrawDot(const Vector2i &position, const Color color) override
+        {
+            sf::CircleShape circle(1);
+            circle.setOutlineColor(ToSfml(color));
+            circle.setFillColor(ToSfml(color));
+            circle.setPosition(sf::Vector2f(ToSfml(position)));
+            Window.draw(circle);
+        }
+    };
+
     void DrawWorld(sf::RenderWindow &window, Camera &camera, Input &input, Debugging &debugging, World &world,
                    Object &player, const sf::Texture &grassTexture, const TimeSpan timeSinceLastDraw)
     {
+        SfmlCanvas canvas{window};
         const sf::Vector2u windowSize = window.getSize();
         const Vector2i topLeft =
             findTileByCoordinates(camera.getWorldFromScreenCoordinates(windowSize, sf::Vector2i(0, 0)));
@@ -222,22 +262,11 @@ namespace ij
             drawHealthBar(window, *enemy);
         }
 
-        {
-            sf::CircleShape circle(1);
-            circle.setOutlineColor(sf::Color(0, 255, 0));
-            circle.setFillColor(sf::Color(0, 255, 0));
-            circle.setPosition(ToSfml(player.Logic.Position));
-            window.draw(circle);
-        }
+        canvas.DrawDot(RoundDown<Int32>(player.Logic.Position), Color(0, 255, 0, 255));
+
         for (const Object *const enemy : visibleEnemies)
         {
-            {
-                sf::CircleShape circle(1);
-                circle.setOutlineColor(sf::Color(255, 0, 0));
-                circle.setFillColor(sf::Color(255, 0, 0));
-                circle.setPosition(ToSfml(enemy->Logic.Position));
-                window.draw(circle);
-            }
+            canvas.DrawDot(RoundDown<Int32>(enemy->Logic.Position), Color(255, 0, 0, 255));
 
             if (enemy == input.selectedEnemy)
             {
