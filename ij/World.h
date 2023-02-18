@@ -3,7 +3,6 @@
 #include "LogicEntity.h"
 #include "Map.h"
 #include "VisualEntity.h"
-#include <fmt/format.h>
 #include <vector>
 
 namespace ij

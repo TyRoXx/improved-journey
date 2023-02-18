@@ -14,11 +14,10 @@ namespace ij
         int VerticalOffset;
         TextureCutter *Cutter;
 
-        EnemyTemplate(const sf::Texture &texture, const sf::Vector2i &size, const int verticalOffset,
-                      TextureCutter *const cutter);
+        EnemyTemplate(const sf::Texture &texture, const sf::Vector2i &size, int verticalOffset, TextureCutter *cutter);
     };
 
-    void SpawnEnemies(World &world, const size_t numberOfEnemies, const std::vector<EnemyTemplate> &enemies,
+    void SpawnEnemies(World &world, size_t numberOfEnemies, const std::vector<EnemyTemplate> &enemies,
                       RandomNumberGenerator &randomNumberGenerator);
     [[nodiscard]] std::optional<std::vector<EnemyTemplate>> LoadEnemies(const std::filesystem::path &assets);
 } // namespace ij

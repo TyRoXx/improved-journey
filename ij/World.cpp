@@ -1,4 +1,5 @@
 #include "World.h"
+#include <fmt/format.h>
 
 ij::Object::Object(VisualEntity visuals, LogicEntity logic)
     : Visuals(std::move(visuals))
