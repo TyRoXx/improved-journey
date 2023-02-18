@@ -1,7 +1,7 @@
 #include "VisualEntity.h"
 #include "ToSfml.h"
 
-ij::VisualEntity::VisualEntity(const sf::Texture *texture, const Vector2i &spriteSize, Int32 verticalOffset,
+ij::VisualEntity::VisualEntity(const sf::Texture *texture, const Vector2u &spriteSize, Int32 verticalOffset,
                                TimeSpan animationTime, TextureCutter *cutter, ObjectAnimation animation)
     : Texture(texture)
     , SpriteSize(spriteSize)

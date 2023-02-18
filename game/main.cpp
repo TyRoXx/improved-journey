@@ -153,6 +153,7 @@ namespace ij
         {
         }
         virtual void DrawDot(const Vector2i &position, Color color) = 0;
+        virtual void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, Color outline, Color fill) = 0;
     };
 
     struct SfmlCanvas final : Canvas
@@ -171,6 +172,18 @@ namespace ij
             circle.setFillColor(ToSfml(color));
             circle.setPosition(sf::Vector2f(ToSfml(position)));
             Window.draw(circle);
+        }
+
+        void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, const Color outline,
+                           const Color fill) override
+        {
+            sf::RectangleShape rect;
+            rect.setPosition(sf::Vector2f(ToSfml(topLeft)));
+            rect.setSize(sf::Vector2f(ToSfml(size)));
+            rect.setFillColor(ToSfml(fill));
+            rect.setOutlineColor(ToSfml(outline));
+            rect.setOutlineThickness(1);
+            Window.draw(rect);
         }
     };
 
@@ -270,13 +283,8 @@ namespace ij
 
             if (enemy == input.selectedEnemy)
             {
-                sf::RectangleShape rect;
-                rect.setPosition(ToSfml(enemy->Visuals.GetTopLeftPosition(enemy->Logic.Position)));
-                rect.setSize(sf::Vector2f(ToSfml(enemy->Visuals.SpriteSize)));
-                rect.setFillColor(sf::Color::Transparent);
-                rect.setOutlineColor(sf::Color::White);
-                rect.setOutlineThickness(1);
-                window.draw(rect);
+                canvas.DrawRectangle(RoundDown<Int32>(enemy->Visuals.GetTopLeftPosition(enemy->Logic.Position)),
+                                     enemy->Visuals.SpriteSize, Color(255, 255, 255, 255), Color(0, 0, 0, 0));
             }
         }
     }
@@ -337,7 +345,7 @@ int main()
     World world(font, map);
     SpawnEnemies(world, numberOfEnemies, *maybeEnemies, randomNumberGenerator);
 
-    Object player(VisualEntity(&wolfsheet1Texture, Vector2i(64, 64), 0, TimeSpan::FromMilliseconds(0), CutWolfTexture,
+    Object player(VisualEntity(&wolfsheet1Texture, Vector2u(64, 64), 0, TimeSpan::FromMilliseconds(0), CutWolfTexture,
                                ObjectAnimation::Standing),
                   LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
                               GenerateRandomPointForSpawning(world, randomNumberGenerator), Vector2f(0, 0), true, false,

@@ -8,13 +8,13 @@ namespace ij
     struct VisualEntity
     {
         const sf::Texture *Texture;
-        Vector2i SpriteSize;
+        Vector2u SpriteSize;
         Int32 VerticalOffset;
         TimeSpan AnimationTime;
         TextureCutter *Cutter;
         ObjectAnimation Animation;
 
-        VisualEntity(const sf::Texture *texture, const Vector2i &spriteSize, Int32 verticalOffset,
+        VisualEntity(const sf::Texture *texture, const Vector2u &spriteSize, Int32 verticalOffset,
                      TimeSpan animationTime, TextureCutter *cutter, ObjectAnimation animation);
         [[nodiscard]] Vector2f GetOffset() const;
         [[nodiscard]] sf::IntRect GetTextureRect(const Vector2f &direction) const;

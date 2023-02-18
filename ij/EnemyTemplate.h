@@ -10,11 +10,11 @@ namespace ij
     struct EnemyTemplate final
     {
         sf::Texture Texture;
-        Vector2i Size;
+        Vector2u Size;
         int VerticalOffset;
         TextureCutter *Cutter;
 
-        EnemyTemplate(const sf::Texture &texture, const Vector2i &size, int verticalOffset, TextureCutter *cutter);
+        EnemyTemplate(const sf::Texture &texture, const Vector2u &size, int verticalOffset, TextureCutter *cutter);
     };
 
     void SpawnEnemies(World &world, size_t numberOfEnemies, const std::vector<EnemyTemplate> &enemies,

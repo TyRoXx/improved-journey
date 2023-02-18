@@ -1,7 +1,7 @@
 #include "TextureCutter.h"
 
 sf::IntRect ij::CutWolfTexture(const ObjectAnimation animation, const TimeSpan animationTime, const Direction direction,
-                               const Vector2i &size)
+                               const Vector2u &size)
 {
     Int32 x = 0;
     Int32 yOffset = 8;
@@ -20,7 +20,9 @@ sf::IntRect ij::CutWolfTexture(const ObjectAnimation animation, const TimeSpan a
         break;
 
     case ObjectAnimation::Dead:
-        return sf::IntRect(5 * size.x, 20 * size.y, size.x, size.y);
+        return sf::IntRect(AssertCast<Int32>(5 * size.x), AssertCast<Int32>(20 * size.y), AssertCast<Int32>(size.x),
+                           AssertCast<Int32>(size.y));
     }
-    return sf::IntRect(x, size.y * (AssertCast<int>(direction) + yOffset), size.x, size.y);
+    return sf::IntRect(x, AssertCast<Int32>(size.y * (AssertCast<Int32>(direction) + yOffset)),
+                       AssertCast<Int32>(size.x), AssertCast<Int32>(size.y));
 }
