@@ -191,13 +191,14 @@ namespace ij
 
         std::vector<const Object *> visibleEnemies;
         std::vector<sf::Sprite> spritesToDrawInZOrder;
-
-        spritesToDrawInZOrder.emplace_back(updateVisuals(player.Logic, player.Visuals, timeSinceLastDraw));
+        updateVisuals(player.Logic, player.Visuals, timeSinceLastDraw);
+        spritesToDrawInZOrder.emplace_back(CreateSpriteForVisualEntity(player.Logic, player.Visuals));
 
         debugging.enemiesDrawnLastFrame = 0;
         for (Object &enemy : world.enemies)
         {
-            sf::Sprite sprite = updateVisuals(enemy.Logic, enemy.Visuals, timeSinceLastDraw);
+            updateVisuals(enemy.Logic, enemy.Visuals, timeSinceLastDraw);
+            sf::Sprite sprite = CreateSpriteForVisualEntity(enemy.Logic, enemy.Visuals);
             if (camera.canSee(windowSize, enemy.Logic.Position, enemy.Visuals))
             {
                 visibleEnemies.push_back(&enemy);

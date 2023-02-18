@@ -28,9 +28,8 @@ sf::Vector2f ij::VisualEntity::GetTopLeftPosition(const sf::Vector2f &bottomLeft
     return bottomLeftPosition - GetOffset();
 }
 
-sf::Sprite ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime)
+void ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime)
 {
-    bool isColoredDead = false;
     switch (logic.GetActivity())
     {
     case ObjectActivity::Standing:
@@ -43,7 +42,6 @@ sf::Sprite ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, co
 
     case ObjectActivity::Dead:
         visuals.Animation = ObjectAnimation::Dead;
-        isColoredDead = true;
         break;
 
     case ObjectActivity::Walking: {
@@ -51,8 +49,22 @@ sf::Sprite ij::updateVisuals(const LogicEntity &logic, VisualEntity &visuals, co
         break;
     }
     }
-
     visuals.AnimationTime += deltaTime.asMilliseconds();
+}
+
+sf::Sprite ij::CreateSpriteForVisualEntity(const LogicEntity &logic, const VisualEntity &visuals)
+{
+    bool isColoredDead = false;
+    switch (visuals.Animation)
+    {
+    case ObjectAnimation::Standing:
+    case ObjectAnimation::Walking:
+    case ObjectAnimation::Attacking:
+        break;
+    case ObjectAnimation::Dead:
+        isColoredDead = true;
+        break;
+    }
     assert(visuals.Texture);
     sf::Sprite result(*visuals.Texture);
     result.setTextureRect(visuals.GetTextureRect(logic.Direction));

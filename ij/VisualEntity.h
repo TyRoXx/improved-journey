@@ -21,5 +21,6 @@ namespace ij
         [[nodiscard]] sf::Vector2f GetTopLeftPosition(const sf::Vector2f &bottomLeftPosition) const;
     };
 
-    sf::Sprite updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime);
+    void updateVisuals(const LogicEntity &logic, VisualEntity &visuals, const sf::Time &deltaTime);
+    [[nodiscard]] sf::Sprite CreateSpriteForVisualEntity(const LogicEntity &logic, const VisualEntity &visuals);
 } // namespace ij
