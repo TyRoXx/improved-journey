@@ -8,5 +8,5 @@ ij::Vector2f ij::normalize(const Vector2f &source)
     {
         return source;
     }
-    return ij::Vector2f(source.x / length, source.y / length);
+    return Vector2f(source.x / length, source.y / length);
 }

@@ -1,7 +1,6 @@
 #pragma once
 #include "LogicEntity.h"
 #include "TextureCutter.h"
-#include <SFML/Graphics/Sprite.hpp>
 
 namespace ij
 {
@@ -27,7 +26,7 @@ namespace ij
         VisualEntity(TextureId texture, const Vector2u &spriteSize, Int32 verticalOffset, TimeSpan animationTime,
                      TextureCutter *cutter, ObjectAnimation animation);
         [[nodiscard]] Vector2f GetOffset() const;
-        [[nodiscard]] ij::TextureRectangle GetTextureRect(const Vector2f &direction) const;
+        [[nodiscard]] TextureRectangle GetTextureRect(const Vector2f &direction) const;
         [[nodiscard]] Vector2f GetTopLeftPosition(const Vector2f &bottomLeftPosition) const;
     };
 
@@ -45,11 +44,6 @@ namespace ij
         {
         }
     };
-
-    inline sf::Color ToSfml(const Color &value) noexcept
-    {
-        return sf::Color(value.Red, value.Green, value.Blue, value.Alpha);
-    }
 
     struct Sprite final
     {

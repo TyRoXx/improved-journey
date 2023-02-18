@@ -1,10 +1,10 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Clock.hpp>
-#include <SFML/Window/Event.hpp>
 #include <array>
 #include <filesystem>
 #include <fmt/format.h>
@@ -30,6 +30,11 @@
 
 namespace ij
 {
+    sf::Color ToSfml(const Color &value) noexcept
+    {
+        return sf::Color(value.Red, value.Green, value.Blue, value.Alpha);
+    }
+
     struct Canvas
     {
         virtual ~Canvas()
