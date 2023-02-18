@@ -1,25 +1,5 @@
 #include "Camera.h"
 
-void ij::Camera::draw(sf::RenderWindow &window, const sf::Sprite &sprite) const
-{
-    window.draw(sprite);
-}
-
-void ij::Camera::draw(sf::RenderWindow &window, const sf::CircleShape &shape) const
-{
-    window.draw(shape);
-}
-
-void ij::Camera::draw(sf::RenderWindow &window, const sf::RectangleShape &shape) const
-{
-    window.draw(shape);
-}
-
-void ij::Camera::draw(sf::RenderWindow &window, const sf::Text &text) const
-{
-    window.draw(text);
-}
-
 sf::Vector2f ij::Camera::getWorldFromScreenCoordinates(const sf::RenderWindow &window, const sf::Vector2i &point) const
 {
     return (sf::Vector2f(window.getSize()) * -0.5f) + Center + sf::Vector2f(point);

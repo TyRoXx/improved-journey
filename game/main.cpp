@@ -33,7 +33,7 @@ namespace ij
         return (sprite.getPosition().y + AssertCast<float>(sprite.getTextureRect().height));
     }
 
-    void drawHealthBar(sf::RenderWindow &window, Camera &camera, const Object &object)
+    void drawHealthBar(sf::RenderWindow &window, const Object &object)
     {
         if (object.Logic.GetCurrentHealth() == object.Logic.GetMaximumHealth())
         {
@@ -50,14 +50,14 @@ namespace ij
             green.setPosition(sf::Vector2f(x, y));
             green.setFillColor(sf::Color::Green);
             green.setSize(sf::Vector2f(greenPortion, height));
-            camera.draw(window, green);
+            window.draw(green);
         }
         {
             sf::RectangleShape red;
             red.setPosition(sf::Vector2f(x + greenPortion, y));
             red.setFillColor(sf::Color::Red);
             red.setSize(sf::Vector2f(width - greenPortion, height));
-            camera.draw(window, red);
+            window.draw(red);
         }
     }
 
@@ -182,7 +182,7 @@ namespace ij
                 sf::Sprite grass(grassTexture);
                 grass.setTextureRect(sf::IntRect(tile * TileSize, 160, TileSize, TileSize));
                 grass.setPosition(sf::Vector2f(AssertCast<float>(x) * TileSize, AssertCast<float>(y) * TileSize));
-                camera.draw(window, grass);
+                window.draw(grass);
                 ++debugging.tilesDrawnLastFrame;
             }
         }
@@ -228,18 +228,18 @@ namespace ij
                   });
         for (const sf::Sprite *const sprite : spritesToDrawInZOrder)
         {
-            camera.draw(window, *sprite);
+            window.draw(*sprite);
         }
 
         for (FloatingText &floatingText : world.FloatingTexts)
         {
-            camera.draw(window, *floatingText.Text);
+            window.draw(*floatingText.Text);
         }
 
-        drawHealthBar(window, camera, player);
+        drawHealthBar(window, player);
         for (const Object *const enemy : visibleEnemies)
         {
-            drawHealthBar(window, camera, *enemy);
+            drawHealthBar(window, *enemy);
         }
 
         {
@@ -247,7 +247,7 @@ namespace ij
             circle.setOutlineColor(sf::Color(0, 255, 0));
             circle.setFillColor(sf::Color(0, 255, 0));
             circle.setPosition(player.Logic.Position);
-            camera.draw(window, circle);
+            window.draw(circle);
         }
         for (const Object *const enemy : visibleEnemies)
         {
@@ -256,7 +256,7 @@ namespace ij
                 circle.setOutlineColor(sf::Color(255, 0, 0));
                 circle.setFillColor(sf::Color(255, 0, 0));
                 circle.setPosition(enemy->Logic.Position);
-                camera.draw(window, circle);
+                window.draw(circle);
             }
 
             if (enemy == input.selectedEnemy)
@@ -267,7 +267,7 @@ namespace ij
                 rect.setFillColor(sf::Color::Transparent);
                 rect.setOutlineColor(sf::Color::White);
                 rect.setOutlineThickness(1);
-                camera.draw(window, rect);
+                window.draw(rect);
             }
         }
     }
