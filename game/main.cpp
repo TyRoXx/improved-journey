@@ -11,7 +11,6 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <array>
-#include <filesystem>
 #include <fmt/format.h>
 #include <ij/AssertCast.h>
 #include <ij/Bot.h>
@@ -102,16 +101,16 @@ namespace ij
         }
     }
 
-    struct TextureManager final
+    struct SfmlTextureManager final : TextureLoader
     {
-        [[nodiscard]] std::optional<TextureId> LoadFromFile(const std::filesystem::path &textureFile);
+        [[nodiscard]] std::optional<TextureId> LoadFromFile(const std::filesystem::path &textureFile) override;
         const sf::Texture &GetTexture(const TextureId &id) const;
 
     private:
         std::vector<sf::Texture> _textures;
     };
 
-    std::optional<ij::TextureId> ij::TextureManager::LoadFromFile(const std::filesystem::path &textureFile)
+    std::optional<TextureId> SfmlTextureManager::LoadFromFile(const std::filesystem::path &textureFile)
     {
         sf::Texture loading;
         if (!loading.loadFromFile(textureFile.string()))
@@ -123,43 +122,10 @@ namespace ij
         return result;
     }
 
-    const sf::Texture &ij::TextureManager::GetTexture(const TextureId &id) const
+    const sf::Texture &SfmlTextureManager::GetTexture(const TextureId &id) const
     {
         assert(id.Value < _textures.size());
         return _textures[id.Value];
-    }
-
-    std::optional<std::vector<ij::EnemyTemplate>> LoadEnemies(TextureManager &textures,
-                                                              const std::filesystem::path &assets)
-    {
-        const std::array<const char *, 10> enemyFileNames = {
-            "bat",      "bee",   "big_worm",   "eyeball", "ghost", "man_eater_flower",
-            "pumpking", "slime", "small_worm", "snake"};
-        std::array<UInt32, 10> enemyTextures = {};
-        for (size_t i = 0; i < enemyFileNames.size(); ++i)
-        {
-            const std::filesystem::path enemyFile =
-                (assets / "lpc-monsters" / (std::string(enemyFileNames[i]) + ".png"));
-            const std::optional<TextureId> loaded = textures.LoadFromFile(enemyFile);
-            if (!loaded)
-            {
-                return std::nullopt;
-            }
-            enemyTextures[i] = loaded->Value;
-        }
-
-        std::vector<EnemyTemplate> enemies;
-        enemies.emplace_back(TextureId(enemyTextures[0]), Vector2u(64, 64), 4, &cutEnemyTexture<4, 3>);
-        enemies.emplace_back(TextureId(enemyTextures[1]), Vector2u(32, 32), 2, &cutEnemyTexture<3, 3>);
-        enemies.emplace_back(TextureId(enemyTextures[2]), Vector2u(64, 64), 18, &cutEnemyTexture<3, 3>);
-        enemies.emplace_back(TextureId(enemyTextures[3]), Vector2u(64, 64), 17, &cutEnemyTexture<3, 3>);
-        enemies.emplace_back(TextureId(enemyTextures[4]), Vector2u(64, 64), 13, &cutEnemyTexture<3, 3>);
-        enemies.emplace_back(TextureId(enemyTextures[5]), Vector2u(128, 128), 28, &cutEnemyTexture<3, 3>);
-        enemies.emplace_back(TextureId(enemyTextures[6]), Vector2u(64, 64), 10, &cutEnemyTexture<3, 3>);
-        enemies.emplace_back(TextureId(enemyTextures[7]), Vector2u(64, 64), 20, &cutEnemyTexture<3, 3>);
-        enemies.emplace_back(TextureId(enemyTextures[8]), Vector2u(64, 64), 19, &cutEnemyTexture<3, 7>);
-        enemies.emplace_back(TextureId(enemyTextures[9]), Vector2u(64, 64), 18, &cutEnemyTexture<4, 3>);
-        return enemies;
     }
 
     sf::Color ToSfml(const Color &value) noexcept
@@ -170,11 +136,11 @@ namespace ij
     struct SfmlCanvas final : Canvas
     {
         sf::RenderWindow &Window;
-        TextureManager &Textures;
+        SfmlTextureManager &Textures;
         std::vector<std::unique_ptr<sf::Text>> Texts;
         const sf::Font &Font0;
 
-        explicit SfmlCanvas(sf::RenderWindow &window, TextureManager &textures, const sf::Font &font0)
+        explicit SfmlCanvas(sf::RenderWindow &window, SfmlTextureManager &textures, const sf::Font &font0)
             : Window(window)
             , Textures(textures)
             , Font0(font0)
@@ -296,7 +262,7 @@ int main()
     const std::filesystem::path wolfsheet1File = (assets / "LPC Wolfman" / "Male" / "Gray" / "Universal.png");
     assert(std::filesystem::exists(wolfsheet1File));
 
-    TextureManager textures;
+    SfmlTextureManager textures;
     const std::optional<TextureId> wolfsheet1Texture = textures.LoadFromFile(wolfsheet1File);
     if (!wolfsheet1Texture)
     {
