@@ -217,9 +217,8 @@ namespace ij
             Window.draw(sfmlSprite);
         }
 
-        [[nodiscard]] virtual Text CreateText(const std::string &content, FontId font, UInt32 size,
-                                              const Vector2f &position, Color fillColor, Color outlineColor,
-                                              float outlineThickness) override
+        [[nodiscard]] Text CreateText(const std::string &content, FontId font, UInt32 size, const Vector2f &position,
+                                      Color fillColor, Color outlineColor, float outlineThickness) override
         {
             assert(font == 0);
             auto instance = std::make_unique<sf::Text>(content, Font0, size);
@@ -239,7 +238,7 @@ namespace ij
             return Text(*this, id);
         }
 
-        virtual void SetTextPosition(TextId id, const Vector2f &position) override
+        void SetTextPosition(TextId id, const Vector2f &position) override
         {
             assert(id < Texts.size());
             const auto &slot = Texts[id];
@@ -247,7 +246,7 @@ namespace ij
             slot->setPosition(ToSfml(position));
         }
 
-        virtual Vector2f GetTextPosition(TextId id) override
+        Vector2f GetTextPosition(TextId id) override
         {
             assert(id < Texts.size());
             const auto &slot = Texts[id];
@@ -255,7 +254,7 @@ namespace ij
             return FromSfml(slot->getPosition());
         }
 
-        virtual void DeleteText(TextId id) override
+        void DeleteText(TextId id) override
         {
             assert(id < Texts.size());
             auto &slot = Texts[id];
@@ -263,7 +262,7 @@ namespace ij
             slot.reset();
         }
 
-        virtual void DrawText(TextId id) override
+        void DrawText(TextId id) override
         {
             assert(id < Texts.size());
             const auto &slot = Texts[id];
