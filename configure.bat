@@ -5,4 +5,4 @@ call bootstrap-vcpkg.bat -disableMetrics || exit /B 1
 .\vcpkg.exe install --disable-metrics fmt:x64-windows-static imgui-sfml:x64-windows-static catch2:x64-windows-static sqlite3:x64-windows-static || exit 1
 .\vcpkg.exe upgrade --no-dry-run || exit 1
 popd || exit 1
-.\vcpkg\downloads\tools\cmake-3.25.0-windows\cmake-3.25.0-windows-i386\bin\cmake.exe -B ..\improved_journey_build -S . -G "Visual Studio 17 2022" -A x64 || exit 1
+.\vcpkg\downloads\tools\cmake-3.25.1-windows\cmake-3.25.1-windows-i386\bin\cmake.exe -B ..\improved_journey_build -S . -G "Visual Studio 17 2022" -A x64 || exit 1
