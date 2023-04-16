@@ -1,5 +1,4 @@
 #include "VisualEntity.h"
-#include "ToSfml.h"
 
 ij::VisualEntity::VisualEntity(TextureId texture, const Vector2u &spriteSize, Int32 verticalOffset,
                                TimeSpan animationTime, TextureCutter *cutter, ObjectAnimation animation)

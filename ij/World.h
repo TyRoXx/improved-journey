@@ -21,10 +21,11 @@ namespace ij
     {
         std::vector<Object> enemies;
         std::vector<FloatingText> FloatingTexts;
-        const sf::Font &Font;
+        const FontId Font;
         const Map &map;
+        Canvas &VisualCanvas;
 
-        explicit World(const sf::Font &font, const Map &map);
+        explicit World(FontId font, const Map &map, Canvas &visualCanvas);
     };
 
     [[nodiscard]] Object *FindEnemyByPosition(World &world, const Vector2f &position);

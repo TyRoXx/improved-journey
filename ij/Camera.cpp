@@ -1,6 +1,4 @@
 #include "Camera.h"
-#include "FromSfml.h"
-#include "ToSfml.h"
 
 ij::Vector2f ij::Camera::getWorldFromScreenCoordinates(const Vector2u &windowSize, const Vector2i &point) const
 {
@@ -9,9 +7,9 @@ ij::Vector2f ij::Camera::getWorldFromScreenCoordinates(const Vector2u &windowSiz
 
 bool ij::Camera::canSee(const Vector2u &windowSize, const Vector2f &logicalPosition, const VisualEntity &entity) const
 {
-    const sf::Rect<float> cameraArea(
-        ToSfml(getWorldFromScreenCoordinates(windowSize, Vector2i(0, 0))), sf::Vector2f(ToSfml(windowSize)));
-    const sf::Rect<float> entityArea(
-        ToSfml(entity.GetTopLeftPosition(logicalPosition)), sf::Vector2f(ToSfml(entity.SpriteSize)));
-    return cameraArea.intersects(entityArea);
+    const Rectangle<float> cameraArea(
+        getWorldFromScreenCoordinates(windowSize, Vector2i(0, 0)), AssertCastVector<float>(windowSize));
+    const Rectangle<float> entityArea(
+        entity.GetTopLeftPosition(logicalPosition), AssertCastVector<float>(entity.SpriteSize));
+    return cameraArea.Intersects(entityArea);
 }

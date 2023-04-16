@@ -1,6 +1,6 @@
 #pragma once
-#include "Vector2.h"
 #include <SFML/System/Vector2.hpp>
+#include <ij/Vector2.h>
 
 namespace ij
 {

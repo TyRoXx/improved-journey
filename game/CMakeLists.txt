@@ -1,7 +1,7 @@
 file(GLOB sources *.h *.cpp)
 add_executable(improved_journey ${sources})
 target_link_libraries(improved_journey PRIVATE ij_lib)
-target_link_libraries(improved_journey PRIVATE fmt::fmt unofficial::sqlite3::sqlite3)
+target_link_libraries(improved_journey PRIVATE sfml-graphics)
 target_link_libraries(improved_journey PRIVATE ImGui-SFML::ImGui-SFML)
 if(FO_CLANG_FORMAT)
 	add_dependencies(improved_journey clang-format)

@@ -1,5 +1,4 @@
 #include "World.h"
-#include "ToSfml.h"
 #include <fmt/format.h>
 
 ij::Object::Object(VisualEntity visuals, LogicEntity logic)
@@ -8,9 +7,10 @@ ij::Object::Object(VisualEntity visuals, LogicEntity logic)
 {
 }
 
-ij::World::World(const sf::Font &font, const Map &map)
+ij::World::World(FontId font, const Map &map, Canvas &visualCanvas)
     : Font(font)
     , map(map)
+    , VisualCanvas(visualCanvas)
 {
 }
 
@@ -68,7 +68,8 @@ void ij::InflictDamage(LogicEntity &damaged, World &world, const Health damage, 
     {
         EraseRandomElementUnstable(world.FloatingTexts, random);
     }
-    world.FloatingTexts.emplace_back(fmt::format("{}", damage), damaged.Position, world.Font, random);
+    world.FloatingTexts.emplace_back(
+        world.VisualCanvas, fmt::format("{}", damage), damaged.Position, world.Font, random);
 }
 
 bool ij::isWithinDistance(const Vector2f &first, const Vector2f &second, const float distance)

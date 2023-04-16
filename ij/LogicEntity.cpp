@@ -68,7 +68,7 @@ ij::Health ij::LogicEntity::GetMaximumHealth() const
 
 [[nodiscard]] bool ij::IsWalkablePoint(const Vector2f &point, const World &world)
 {
-    const sf::Vector2<ptrdiff_t> tileIndex(
+    const Vector2<ptrdiff_t> tileIndex(
         AssertCast<ptrdiff_t>(std::floor(point.x / TileSize)), AssertCast<ptrdiff_t>(std::floor(point.y / TileSize)));
     if ((tileIndex.x < 0) || (tileIndex.y < 0))
     {
