@@ -19,6 +19,12 @@ namespace ij
         Vector2<T> Position;
         Vector2<T> Size;
 
+        Rectangle(const Vector2<T> &position, const Vector2<T> &size)
+            : Position(position)
+            , Size(size)
+        {
+        }
+
         [[nodiscard]] bool Intersects(const Rectangle &other) const noexcept
         {
             const bool xOverlap = IsValueInRange(Position.x, other.Position.x, other.Position.x + other.Size.x) ||

@@ -30,7 +30,8 @@ namespace ij
         virtual ~Canvas();
         [[nodiscard]] virtual Vector2u GetSize() = 0;
         virtual void DrawDot(const Vector2i &position, Color color) = 0;
-        virtual void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, Color outline, Color fill) = 0;
+        virtual void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, Color outline, Color fill,
+                                   float outlineThickness) = 0;
         virtual void DrawSprite(const Sprite &sprite) = 0;
         [[nodiscard]] virtual Text CreateText(const std::string &content, FontId font, UInt32 size,
                                               const Vector2f &position, Color fillColor, Color outlineColor,

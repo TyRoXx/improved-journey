@@ -31,10 +31,10 @@ namespace ij
                 RoundDown<UInt32>(AssertCast<float>(object.Logic.GetCurrentHealth()) /
                                   AssertCast<float>(object.Logic.GetMaximumHealth()) * AssertCast<float>(width));
             const Color green(0, 255, 0, 255);
-            canvas.DrawRectangle(Vector2i(x, y), Vector2u(greenPortion, height), green, green);
+            canvas.DrawRectangle(Vector2i(x, y), Vector2u(greenPortion, height), green, green, 1);
             const Color red(255, 0, 0, 255);
-            canvas.DrawRectangle(
-                Vector2i(x + AssertCast<Int32>(greenPortion), y), Vector2u((width - greenPortion), height), red, red);
+            canvas.DrawRectangle(Vector2i(x + AssertCast<Int32>(greenPortion), y),
+                                 Vector2u((width - greenPortion), height), red, red, 1);
         }
     } // namespace
 } // namespace ij
@@ -134,7 +134,7 @@ void ij::DrawWorld(Canvas &canvas, const Camera &camera, const Input &input, Deb
         if (enemy == input.selectedEnemy)
         {
             canvas.DrawRectangle(RoundDown<Int32>(enemy->Visuals.GetTopLeftPosition(enemy->Logic.Position)),
-                                 enemy->Visuals.SpriteSize, Color(255, 255, 255, 255), Color(0, 0, 0, 0));
+                                 enemy->Visuals.SpriteSize, Color(255, 255, 255, 255), Color(0, 0, 0, 0), 1);
         }
     }
 }

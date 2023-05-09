@@ -161,15 +161,15 @@ namespace ij
             Window.draw(circle);
         }
 
-        void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, const Color outline,
-                           const Color fill) override
+        void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, const Color outline, const Color fill,
+                           float outlineThickness) override
         {
             sf::RectangleShape rect;
             rect.setPosition(sf::Vector2f(ToSfml(topLeft)));
             rect.setSize(sf::Vector2f(ToSfml(size)));
             rect.setFillColor(ToSfml(fill));
             rect.setOutlineColor(ToSfml(outline));
-            rect.setOutlineThickness(1);
+            rect.setOutlineThickness(outlineThickness);
             Window.draw(rect);
         }
 
@@ -236,6 +236,164 @@ namespace ij
             Window.draw(*slot);
         }
     };
+
+    struct WindowFunctions
+    {
+        virtual ~WindowFunctions() = 0
+        {
+        }
+        [[nodiscard]] virtual bool IsOpen() = 0;
+        virtual void ProcessEvents(Input &input, const Camera &camera, World &world) = 0;
+        virtual void UpdateGui(TimeSpan deltaTime) = 0;
+        virtual void Clear() = 0;
+        virtual void SetView(const Rectangle<float> &view) = 0;
+        virtual void RenderGui() = 0;
+        virtual void Display() = 0;
+        [[nodiscard]] virtual TimeSpan RestartDeltaClock() = 0;
+    };
+
+    struct SfmlWindowFunctions : WindowFunctions
+    {
+        explicit SfmlWindowFunctions(sf::RenderWindow &sfml)
+            : _sfml(sfml)
+        {
+        }
+
+        [[nodiscard]] bool IsOpen() override
+        {
+            return _sfml.isOpen();
+        }
+
+        void ProcessEvents(Input &input, const Camera &camera, World &world) override
+        {
+            ij::ProcessEvents(input, _sfml, camera, world);
+        }
+
+        void UpdateGui(TimeSpan deltaTime) override
+        {
+            ImGui::SFML::Update(_sfml, sf::milliseconds(AssertCast<Int32>(deltaTime.Milliseconds)));
+        }
+
+        void Clear() override
+        {
+            _sfml.clear();
+        }
+
+        void SetView(const Rectangle<float> &view) override
+        {
+            _sfml.setView(sf::View(ToSfml(view.Position + (view.Size / 2.0f)), ToSfml(view.Size)));
+        }
+
+        void RenderGui() override
+        {
+            ImGui::SFML::Render(_sfml);
+        }
+
+        void Display() override
+        {
+            _sfml.display();
+        }
+
+        [[nodiscard]] TimeSpan RestartDeltaClock() override
+        {
+            // TODO: account for the microseconds lost by rounding
+            return TimeSpan::FromMilliseconds(_deltaClock.restart().asMilliseconds());
+        }
+
+    private:
+        sf::RenderWindow &_sfml;
+        sf::Clock _deltaClock;
+    };
+
+    [[nodiscard]] bool RunGame(TextureLoader &textures, Canvas &canvas, const std::filesystem::path &assets,
+                               WindowFunctions &window)
+    {
+        using namespace ij;
+
+        const std::filesystem::path wolfsheet1File = (assets / "LPC Wolfman" / "Male" / "Gray" / "Universal.png");
+        assert(std::filesystem::exists(wolfsheet1File));
+
+        const std::optional<TextureId> wolfsheet1Texture = textures.LoadFromFile(wolfsheet1File);
+        if (!wolfsheet1Texture)
+        {
+            std::cerr << "Could not load player texture\n";
+            return false;
+        }
+
+        const std::filesystem::path grassFile = (assets / "LPC Base Assets" / "tiles" / "grass.png");
+        const std::optional<TextureId> grassTexture = textures.LoadFromFile(grassFile);
+        if (!grassTexture)
+        {
+            std::cerr << "Could not load grass texture\n";
+            return false;
+        }
+
+        const std::optional<std::vector<EnemyTemplate>> maybeEnemies = LoadEnemies(textures, assets);
+        if (!maybeEnemies)
+        {
+            std::cerr << "Could not load enemies\n";
+            return false;
+        }
+
+        Input input;
+        StandardRandomNumberGenerator randomNumberGenerator;
+        const Map map = GenerateRandomMap(randomNumberGenerator);
+
+        constexpr float enemiesPerTile = 0.02f;
+        const size_t numberOfEnemies = static_cast<size_t>(AssertCast<float>(map.Tiles.size()) * enemiesPerTile);
+        World world(0, map, canvas);
+        SpawnEnemies(world, numberOfEnemies, *maybeEnemies, randomNumberGenerator);
+
+        Object player(VisualEntity(*wolfsheet1Texture, Vector2u(64, 64), 0, TimeSpan::FromMilliseconds(0),
+                                   CutWolfTexture, ObjectAnimation::Standing),
+                      LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
+                                  GenerateRandomPointForSpawning(world, randomNumberGenerator), Vector2f(0, 0), true,
+                                  false, 100, 100, ObjectActivity::Standing));
+
+        Camera camera{player.Logic.Position};
+        Debugging debugging;
+        TimeSpan remainingSimulationTime = TimeSpan::FromMilliseconds(0);
+        while (window.IsOpen())
+        {
+            window.ProcessEvents(input, camera, world);
+
+            const TimeSpan deltaTime = window.RestartDeltaClock();
+            debugging.FrameTimes[debugging.NextFrameTime] = AssertCast<float>(deltaTime.Milliseconds);
+            debugging.NextFrameTime = (debugging.NextFrameTime + 1) % debugging.FrameTimes.size();
+
+            // fix the time step to make physics and NPC behaviour independent from the frame rate
+            remainingSimulationTime += deltaTime;
+            UpdateWorld(remainingSimulationTime, player.Logic, world, randomNumberGenerator);
+
+            window.UpdateGui(deltaTime);
+            UpdateUserInterface(player.Logic, world, input, debugging);
+
+            window.Clear();
+
+            camera.Center = player.Logic.Position;
+            const Vector2f windowSize = AssertCastVector<float>(canvas.GetSize());
+            Vector2f viewSize = windowSize;
+            if (debugging.IsZoomedOut)
+            {
+                viewSize = (viewSize * 2.0f);
+            }
+            window.SetView(
+                Rectangle<float>(camera.Center - (windowSize / 2.0f) + ((windowSize - viewSize) / 2.0f), viewSize));
+
+            DrawWorld(canvas, camera, input, debugging, world, player, *grassTexture, deltaTime);
+
+            if (debugging.IsZoomedOut)
+            {
+                canvas.DrawRectangle(RoundDown<Int32>(camera.Center - AssertCastVector<float>(canvas.GetSize()) * 0.5f),
+                                     canvas.GetSize(), Color(255, 0, 0, 255), Color(0, 0, 0, 0), 2);
+            }
+
+            window.RenderGui();
+            window.Display();
+        }
+
+        return true;
+    }
 } // namespace ij
 
 int main()
@@ -246,7 +404,7 @@ int main()
     if (!ImGui::SFML::Init(window))
     {
         std::cerr << "Could not initialize ImGui::SFML\n";
-        return 1;
+        return false;
     }
 
     const std::filesystem::path assets =
@@ -256,97 +414,13 @@ int main()
     if (!font.loadFromFile((assets / "Roboto-Font" / "Roboto-Light.ttf").string()))
     {
         std::cerr << "Could not load font\n";
-        return 1;
+        return false;
     }
-
-    const std::filesystem::path wolfsheet1File = (assets / "LPC Wolfman" / "Male" / "Gray" / "Universal.png");
-    assert(std::filesystem::exists(wolfsheet1File));
 
     SfmlTextureManager textures;
-    const std::optional<TextureId> wolfsheet1Texture = textures.LoadFromFile(wolfsheet1File);
-    if (!wolfsheet1Texture)
-    {
-        std::cerr << "Could not load player texture\n";
-        return 1;
-    }
-
-    const std::filesystem::path grassFile = (assets / "LPC Base Assets" / "tiles" / "grass.png");
-    const std::optional<TextureId> grassTexture = textures.LoadFromFile(grassFile);
-    if (!grassTexture)
-    {
-        std::cerr << "Could not load grass texture\n";
-        return 1;
-    }
-
-    const std::optional<std::vector<EnemyTemplate>> maybeEnemies = LoadEnemies(textures, assets);
-    if (!maybeEnemies)
-    {
-        std::cerr << "Could not load enemies\n";
-        return 1;
-    }
-
-    Input input;
-    StandardRandomNumberGenerator randomNumberGenerator;
-    const Map map = GenerateRandomMap(randomNumberGenerator);
     SfmlCanvas canvas{window, textures, font};
-
-    constexpr float enemiesPerTile = 0.02f;
-    const size_t numberOfEnemies = static_cast<size_t>(AssertCast<float>(map.Tiles.size()) * enemiesPerTile);
-    World world(0, map, canvas);
-    SpawnEnemies(world, numberOfEnemies, *maybeEnemies, randomNumberGenerator);
-
-    Object player(VisualEntity(*wolfsheet1Texture, Vector2u(64, 64), 0, TimeSpan::FromMilliseconds(0), CutWolfTexture,
-                               ObjectAnimation::Standing),
-                  LogicEntity(std::make_unique<PlayerCharacter>(input.isDirectionKeyPressed, input.isAttackPressed),
-                              GenerateRandomPointForSpawning(world, randomNumberGenerator), Vector2f(0, 0), true, false,
-                              100, 100, ObjectActivity::Standing));
-
-    Camera camera{player.Logic.Position};
-    Debugging debugging;
-    sf::Clock deltaClock;
-    TimeSpan remainingSimulationTime = TimeSpan::FromMilliseconds(0);
-    while (window.isOpen())
-    {
-        ProcessEvents(input, window, camera, world);
-
-        const sf::Time sfmlDeltaTime = deltaClock.restart();
-        const TimeSpan deltaTime = TimeSpan::FromMilliseconds(sfmlDeltaTime.asMilliseconds());
-        debugging.FrameTimes[debugging.NextFrameTime] = AssertCast<float>(deltaTime.Milliseconds);
-        debugging.NextFrameTime = (debugging.NextFrameTime + 1) % debugging.FrameTimes.size();
-
-        // fix the time step to make physics and NPC behaviour independent from the frame rate
-        remainingSimulationTime += deltaTime;
-        UpdateWorld(remainingSimulationTime, player.Logic, world, randomNumberGenerator);
-
-        ImGui::SFML::Update(window, sfmlDeltaTime);
-        UpdateUserInterface(player.Logic, world, input, debugging);
-
-        window.clear();
-
-        camera.Center = player.Logic.Position;
-        sf::Vector2f viewSize = sf::Vector2f(window.getSize());
-        if (debugging.IsZoomedOut)
-        {
-            viewSize *= 2.0f;
-        }
-        window.setView(sf::View(ToSfml(camera.Center), viewSize));
-
-        DrawWorld(canvas, camera, input, debugging, world, player, *grassTexture, deltaTime);
-
-        if (debugging.IsZoomedOut)
-        {
-            sf::RectangleShape cameraBorder;
-            cameraBorder.setPosition(ToSfml(camera.Center - FromSfml(sf::Vector2f(window.getSize())) * 0.5f));
-            cameraBorder.setSize(sf::Vector2f(window.getSize()));
-            cameraBorder.setOutlineColor(sf::Color::Red);
-            cameraBorder.setOutlineThickness(2);
-            cameraBorder.setFillColor(sf::Color::Transparent);
-            window.draw(cameraBorder);
-        }
-
-        ImGui::SFML::Render(window);
-        window.display();
-    }
-
+    SfmlWindowFunctions windowFunctions{window};
+    const bool success = ij::RunGame(textures, canvas, assets, windowFunctions);
     ImGui::SFML::Shutdown();
+    return !success;
 }
