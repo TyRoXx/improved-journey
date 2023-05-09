@@ -1,0 +1,8 @@
+file(GLOB sources *.h *.cpp)
+add_executable(sfml_game ${sources})
+target_link_libraries(sfml_game PRIVATE ij_lib)
+target_link_libraries(sfml_game PRIVATE sfml-graphics)
+target_link_libraries(sfml_game PRIVATE ImGui-SFML::ImGui-SFML)
+if(FO_CLANG_FORMAT)
+	add_dependencies(sfml_game clang-format)
+endif()

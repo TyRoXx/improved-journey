@@ -80,5 +80,5 @@ endif()
 include_directories(.)
 
 add_subdirectory(ij)
-add_subdirectory(game)
+add_subdirectory(sfml_game)
 add_subdirectory(tests)
