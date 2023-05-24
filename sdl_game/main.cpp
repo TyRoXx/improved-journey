@@ -122,7 +122,8 @@ namespace ij
             assert(font == 0);
             assert(size == 14);
             UniqueSurface textSurface(
-                TTF_RenderText_Solid(&_font0, content.c_str(), ToSdlColor(fillColor)), SDL_FreeSurface);
+                TTF_RenderUTF8_Shaded(&_font0, content.c_str(), ToSdlColor(fillColor), ToSdlColor(outlineColor)),
+                SDL_FreeSurface);
             assert(textSurface);
             UniqueTexture textTexture(SDL_CreateTextureFromSurface(&_renderer, textSurface.get()), SDL_DestroyTexture);
             assert(textTexture);
