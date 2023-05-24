@@ -88,7 +88,13 @@ namespace ij
         void DrawDot(const Vector2i &position, const Color color) override
         {
             SetDrawColor(_renderer, color);
-            SDL_RenderDrawPoint(&_renderer, position.x - _viewTopLeft.x, position.y - _viewTopLeft.y);
+            const int returnCode =
+                SDL_RenderDrawPoint(&_renderer, position.x - _viewTopLeft.x, position.y - _viewTopLeft.y);
+            if (returnCode != 0)
+            {
+                std::cerr << "SDL_RenderDrawPoint failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                return;
+            }
         }
 
         void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, const Color outline, const Color fill,
