@@ -174,7 +174,6 @@ namespace ij
         {
             ImGui::GetIO().DeltaTime = AssertCast<float>(deltaTime.Milliseconds) / 1000.0f;
             ImGui_ImplSDLRenderer_NewFrame();
-            ImGui_ImplSDL2_NewFrame();
             ImGui::NewFrame();
         }
 
