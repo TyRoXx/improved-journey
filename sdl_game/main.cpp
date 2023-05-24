@@ -67,6 +67,14 @@ namespace ij
         }
     }
 
+    [[nodiscard]] Vector2u GetWindowSize(SDL_Window &window)
+    {
+        int width = 0;
+        int height = 0;
+        SDL_GetWindowSize(&window, &width, &height);
+        return Vector2u(AssertCast<Uint32>(width), AssertCast<Uint32>(height));
+    }
+
     struct SdlCanvas final : Canvas
     {
         explicit SdlCanvas(SDL_Window &window, SDL_Renderer &renderer, SdlTextureManager &textures, TTF_Font &font0)
@@ -79,10 +87,7 @@ namespace ij
 
         [[nodiscard]] Vector2u GetSize() override
         {
-            int width = 0;
-            int height = 0;
-            SDL_GetWindowSize(&_window, &width, &height);
-            return Vector2u(AssertCast<Uint32>(width), AssertCast<Uint32>(height));
+            return GetWindowSize(_window);
         }
 
         void DrawDot(const Vector2i &position, const Color color) override
@@ -276,8 +281,9 @@ namespace ij
 
     struct SdlWindowFunctions : WindowFunctions
     {
-        explicit SdlWindowFunctions(SDL_Renderer &renderer)
-            : _renderer(renderer)
+        explicit SdlWindowFunctions(SDL_Window &window, SDL_Renderer &renderer)
+            : _window(window)
+            , _renderer(renderer)
         {
         }
 
@@ -296,6 +302,67 @@ namespace ij
                 if (event.type == SDL_QUIT)
                 {
                     _isOpen = false;
+                    break;
+                }
+
+                if (!ImGui::GetIO().WantCaptureKeyboard)
+                {
+                    if (event.type == SDL_KEYDOWN)
+                    {
+                        switch (event.key.keysym.sym)
+                        {
+                        case SDLK_w:
+                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = true;
+                            break;
+                        case SDLK_a:
+                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = true;
+                            break;
+                        case SDLK_s:
+                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = true;
+                            break;
+                        case SDLK_d:
+                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = true;
+                            break;
+                        case SDLK_SPACE:
+                            input.isAttackPressed = true;
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                    else if (event.type == SDL_KEYUP)
+                    {
+                        switch (event.key.keysym.sym)
+                        {
+                        case SDLK_w:
+                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = false;
+                            break;
+                        case SDLK_a:
+                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = false;
+                            break;
+                        case SDLK_s:
+                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = false;
+                            break;
+                        case SDLK_d:
+                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = false;
+                            break;
+                        case SDLK_SPACE:
+                            input.isAttackPressed = false;
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                }
+
+                if (!ImGui::GetIO().WantCaptureMouse)
+                {
+                    if ((event.type == SDL_MOUSEBUTTONDOWN) && (event.button.button == 1))
+                    {
+                        const Vector2f pointInWorld = camera.getWorldFromScreenCoordinates(
+                            GetWindowSize(_window), Vector2i(event.button.x, event.button.y));
+                        input.selectedEnemy = FindEnemyByPosition(world, pointInWorld);
+                    }
                 }
             }
         }
@@ -344,6 +411,7 @@ namespace ij
         }
 
     private:
+        SDL_Window &_window;
         SDL_Renderer &_renderer;
         bool _isOpen = true;
         Uint64 _lastClockRestart = SDL_GetTicks64();
@@ -435,7 +503,7 @@ int main(int argc, char **argv)
         ImGui::GetIO().DisplaySize = ImVec2{windowSize.x, windowSize.y};
     }
 
-    SdlWindowFunctions windowFunctions(*renderer);
+    SdlWindowFunctions windowFunctions(*window, *renderer);
     const bool success = RunGame(textures, canvas, assets, windowFunctions);
     ImGui_ImplSDLRenderer_Shutdown();
     ImGui_ImplSDL2_Shutdown();
