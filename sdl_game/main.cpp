@@ -13,6 +13,12 @@ namespace ij
     using UniqueFont = std::unique_ptr<TTF_Font, decltype(&TTF_CloseFont)>;
     using UniqueSurface = std::unique_ptr<SDL_Surface, decltype(&SDL_FreeSurface)>;
 
+    [[nodiscard]] SDL_Color ToSdlColor(const Color &from)
+    {
+        const SDL_Color result = {from.Red, from.Green, from.Green, from.Alpha};
+        return result;
+    }
+
     struct SdlTextureManager final : TextureLoader
     {
         explicit SdlTextureManager(SDL_Renderer &renderer)
@@ -53,10 +59,11 @@ namespace ij
 
     struct SdlCanvas final : Canvas
     {
-        explicit SdlCanvas(SDL_Window &window, SDL_Renderer &renderer, SdlTextureManager &textures)
+        explicit SdlCanvas(SDL_Window &window, SDL_Renderer &renderer, SdlTextureManager &textures, TTF_Font &font0)
             : _window(window)
             , _renderer(renderer)
             , _textures(textures)
+            , _font0(font0)
         {
         }
 
@@ -112,24 +119,73 @@ namespace ij
         [[nodiscard]] Text CreateText(const std::string &content, FontId font, UInt32 size, const Vector2f &position,
                                       Color fillColor, Color outlineColor, float outlineThickness) override
         {
-            return Text(*this, 0);
+            assert(font == 0);
+            assert(size == 14);
+            UniqueSurface textSurface(
+                TTF_RenderText_Solid(&_font0, content.c_str(), ToSdlColor(fillColor)), SDL_FreeSurface);
+            assert(textSurface);
+            UniqueTexture textTexture(SDL_CreateTextureFromSurface(&_renderer, textSurface.get()), SDL_DestroyTexture);
+            assert(textTexture);
+            TextSlot textSlot(std::move(textTexture), position);
+            const auto foundEmptySlot =
+                std::find_if(_texts.begin(), _texts.end(), [](const TextSlot &text) { return !text.Texture; });
+            if (foundEmptySlot == _texts.end())
+            {
+                const TextId id = _texts.size();
+                _texts.emplace_back(std::move(textSlot));
+                return Text(*this, id);
+            }
+            const TextId id = AssertCast<size_t>(std::distance(_texts.begin(), foundEmptySlot));
+            *foundEmptySlot = std::move(textSlot);
+            return Text(*this, id);
         }
 
         void SetTextPosition(TextId id, const Vector2f &position) override
         {
+            assert(id < _texts.size());
+            assert(_texts[id].Texture);
+            _texts[id].Position = position;
         }
 
         Vector2f GetTextPosition(TextId id) override
         {
-            return Vector2f(0, 0);
+            assert(id < _texts.size());
+            assert(_texts[id].Texture);
+            return _texts[id].Position;
         }
 
         void DeleteText(TextId id) override
         {
+            assert(id < _texts.size());
+            assert(_texts[id].Texture);
+            _texts[id].Texture.reset();
         }
 
         void DrawText(TextId id) override
         {
+            assert(id < _texts.size());
+            const TextSlot &textSlot = _texts[id];
+            assert(textSlot.Texture);
+            int textureWidth = 0;
+            int textureHeight = 0;
+            {
+                const int returnCode =
+                    SDL_QueryTexture(textSlot.Texture.get(), NULL, NULL, &textureWidth, &textureHeight);
+                if (returnCode != 0)
+                {
+                    std::cerr << "SDL_QueryTexture failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                    return;
+                }
+            }
+            const SDL_Rect destination = {RoundDown<int>(textSlot.Position.x) - _viewTopLeft.x,
+                                          RoundDown<int>(textSlot.Position.y - _viewTopLeft.y), textureWidth,
+                                          textureHeight};
+            const int returnCode = SDL_RenderCopy(&_renderer, textSlot.Texture.get(), nullptr, &destination);
+            if (returnCode != 0)
+            {
+                std::cerr << "SDL_RenderCopy failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                return;
+            }
         }
 
         void SetView(const Rectangle<float> &view) override
@@ -138,10 +194,24 @@ namespace ij
         }
 
     private:
+        struct TextSlot final
+        {
+            UniqueTexture Texture;
+            Vector2f Position;
+
+            TextSlot(UniqueTexture texture, const Vector2f &position) noexcept
+                : Texture(std::move(texture))
+                , Position(position)
+            {
+            }
+        };
+
         SDL_Window &_window;
         SDL_Renderer &_renderer;
         SdlTextureManager &_textures;
+        TTF_Font &_font0;
         Vector2i _viewTopLeft{0, 0};
+        std::vector<TextSlot> _texts;
     };
 
     struct SdlWindowFunctions : WindowFunctions
@@ -207,6 +277,22 @@ namespace ij
         bool _isOpen = true;
         Uint64 _lastClockRestart = SDL_GetTicks64();
     };
+
+    struct SdlQuitter final
+    {
+        ~SdlQuitter()
+        {
+            SDL_Quit();
+        }
+    };
+
+    struct TtfQuitter final
+    {
+        ~TtfQuitter()
+        {
+            TTF_Quit();
+        }
+    };
 } // namespace ij
 
 int main(int argc, char **argv)
@@ -221,11 +307,15 @@ int main(int argc, char **argv)
         std::cerr << "SDL_Init failed\n";
         return 1;
     }
+    SdlQuitter sdl;
+
     if (TTF_Init())
     {
         std::cerr << "TTF_Init failed\n";
         return 1;
     }
+    TtfQuitter ttf;
+
     const std::filesystem::path assets =
         std::filesystem::current_path().parent_path().parent_path() / "improved-journey" / "assets";
 
@@ -259,8 +349,16 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    const UniqueFont font0(
+        TTF_OpenFont((assets / "Roboto-Font" / "Roboto-Light.ttf").string().c_str(), 14), &TTF_CloseFont);
+    if (!font0)
+    {
+        std::cerr << "Could not load font\n";
+        return 1;
+    }
+
     SdlTextureManager textures(*renderer);
-    SdlCanvas canvas(*window, *renderer, textures);
+    SdlCanvas canvas(*window, *renderer, textures, *font0);
     {
         const Vector2f windowSize = AssertCastVector<float>(canvas.GetSize());
         ImGui::GetIO().DisplaySize = ImVec2{windowSize.x, windowSize.y};
@@ -271,7 +369,5 @@ int main(int argc, char **argv)
     ImGui_ImplSDLRenderer_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
-    TTF_Quit();
-    SDL_Quit();
     return !success;
 }
