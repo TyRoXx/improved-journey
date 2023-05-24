@@ -82,6 +82,49 @@ namespace ij
         void DrawRectangle(const Vector2i &topLeft, const Vector2u &size, const Color outline, const Color fill,
                            float outlineThickness) override
         {
+            {
+                const int returnCode =
+                    SDL_SetRenderDrawColor(&_renderer, outline.Red, outline.Green, outline.Blue, outline.Alpha);
+                if (returnCode != 0)
+                {
+                    std::cerr << "SDL_SetRenderDrawColor failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                    return;
+                }
+            }
+            const int integerThickness = (std::max)(1, RoundDown<int>(outlineThickness));
+            for (int i = 0; i < integerThickness; ++i)
+            {
+                const SDL_Rect rectangle = {topLeft.x - _viewTopLeft.x + i, topLeft.y - _viewTopLeft.y + i,
+                                            AssertCast<int>(size.x) - (2 * i), AssertCast<int>(size.y) - (2 * i)};
+                const int returnCode = SDL_RenderDrawRect(&_renderer, &rectangle);
+                if (returnCode != 0)
+                {
+                    std::cerr << "SDL_RenderDrawRect failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                    return;
+                }
+            }
+            if (fill.Alpha == 0)
+            {
+                // rectangle is not filled
+                return;
+            }
+            {
+                const int returnCode = SDL_SetRenderDrawColor(&_renderer, fill.Red, fill.Green, fill.Blue, fill.Alpha);
+                if (returnCode != 0)
+                {
+                    std::cerr << "SDL_SetRenderDrawColor failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                    return;
+                }
+            }
+            const SDL_Rect rectangle = {
+                topLeft.x - _viewTopLeft.x + integerThickness, topLeft.y - _viewTopLeft.y + integerThickness,
+                AssertCast<int>(size.x) - (2 * integerThickness), AssertCast<int>(size.y) - (2 * integerThickness)};
+            const int returnCode = SDL_RenderFillRect(&_renderer, &rectangle);
+            if (returnCode != 0)
+            {
+                std::cerr << "SDL_RenderFillRect failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                return;
+            }
         }
 
         void DrawSprite(const Sprite &sprite) override
@@ -258,7 +301,18 @@ namespace ij
 
         void Clear() override
         {
-            SDL_RenderClear(&_renderer);
+            {
+                const int returnCode = SDL_SetRenderDrawColor(&_renderer, 0, 0, 0, 255);
+                if (returnCode != 0)
+                {
+                    std::cerr << "SDL_SetRenderDrawColor failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                }
+            }
+            const int returnCode = SDL_RenderClear(&_renderer);
+            if (returnCode != 0)
+            {
+                std::cerr << "SDL_RenderClear failed with " << returnCode << ": " << SDL_GetError() << '\n';
+            }
         }
 
         void RenderGui() override
