@@ -80,7 +80,7 @@ ij::WindowFunctions::~WindowFunctions()
         {
             viewSize = (viewSize * 2.0f);
         }
-        window.SetView(
+        canvas.SetView(
             Rectangle<float>(camera.Center - (windowSize / 2.0f) + ((windowSize - viewSize) / 2.0f), viewSize));
 
         DrawWorld(canvas, camera, input, debugging, world, player, *grassTexture, deltaTime);

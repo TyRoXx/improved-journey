@@ -1,5 +1,6 @@
 #pragma once
 #include "Sprite.h"
+#include "TextureCutter.h"
 #include <string>
 
 namespace ij
@@ -40,6 +41,7 @@ namespace ij
         [[nodiscard]] virtual Vector2f GetTextPosition(TextId id) = 0;
         virtual void DeleteText(TextId id) = 0;
         virtual void DrawText(TextId id) = 0;
+        virtual void SetView(const Rectangle<float> &view) = 0;
     };
 
 } // namespace ij

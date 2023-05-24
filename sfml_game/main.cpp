@@ -233,6 +233,11 @@ namespace ij
             assert(slot);
             Window.draw(*slot);
         }
+
+        void SetView(const Rectangle<float> &view) override
+        {
+            Window.setView(sf::View(ToSfml(view.Position + (view.Size / 2.0f)), ToSfml(view.Size)));
+        }
     };
 
     struct SfmlWindowFunctions : WindowFunctions
@@ -260,11 +265,6 @@ namespace ij
         void Clear() override
         {
             _sfml.clear();
-        }
-
-        void SetView(const Rectangle<float> &view) override
-        {
-            _sfml.setView(sf::View(ToSfml(view.Position + (view.Size / 2.0f)), ToSfml(view.Size)));
         }
 
         void RenderGui() override

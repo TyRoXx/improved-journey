@@ -21,6 +21,7 @@ namespace ij
         }
 
         [[nodiscard]] std::optional<TextureId> LoadFromFile(const std::filesystem::path &textureFile) override;
+        SDL_Texture &GetTexture(TextureId id);
 
     private:
         SDL_Renderer &_renderer;
@@ -44,10 +45,18 @@ namespace ij
         return result;
     }
 
+    SDL_Texture &SdlTextureManager::GetTexture(TextureId id)
+    {
+        assert(id.Value < _textures.size());
+        return *_textures[id.Value];
+    }
+
     struct SdlCanvas final : Canvas
     {
-        explicit SdlCanvas(SDL_Window &window)
+        explicit SdlCanvas(SDL_Window &window, SDL_Renderer &renderer, SdlTextureManager &textures)
             : _window(window)
+            , _renderer(renderer)
+            , _textures(textures)
         {
         }
 
@@ -70,6 +79,34 @@ namespace ij
 
         void DrawSprite(const Sprite &sprite) override
         {
+            SDL_Texture &texture = _textures.GetTexture(sprite.Texture);
+            {
+                const int returnCode = SDL_SetTextureColorMod(
+                    &texture, sprite.ColorMultiplier.Red, sprite.ColorMultiplier.Green, sprite.ColorMultiplier.Blue);
+                if (returnCode != 0)
+                {
+                    std::cerr << "SDL_SetTextureColorMod failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                    return;
+                }
+            }
+            {
+                const int returnCode = SDL_SetTextureAlphaMod(&texture, sprite.ColorMultiplier.Alpha);
+                if (returnCode != 0)
+                {
+                    std::cerr << "SDL_SetTextureAlphaMod failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                    return;
+                }
+            }
+            const SDL_Rect source = {AssertCast<int>(sprite.TextureTopLeft.x), AssertCast<int>(sprite.TextureTopLeft.y),
+                                     AssertCast<int>(sprite.TextureSize.x), AssertCast<int>(sprite.TextureSize.y)};
+            const SDL_Rect destination = {sprite.Position.x - _viewTopLeft.x, sprite.Position.y - _viewTopLeft.y,
+                                          AssertCast<int>(sprite.TextureSize.x), AssertCast<int>(sprite.TextureSize.y)};
+            const int returnCode = SDL_RenderCopy(&_renderer, &texture, &source, &destination);
+            if (returnCode != 0)
+            {
+                std::cerr << "SDL_RenderCopy failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                return;
+            }
         }
 
         [[nodiscard]] Text CreateText(const std::string &content, FontId font, UInt32 size, const Vector2f &position,
@@ -95,8 +132,16 @@ namespace ij
         {
         }
 
+        void SetView(const Rectangle<float> &view) override
+        {
+            _viewTopLeft = RoundDown<Int32>(view.Position);
+        }
+
     private:
         SDL_Window &_window;
+        SDL_Renderer &_renderer;
+        SdlTextureManager &_textures;
+        Vector2i _viewTopLeft{0, 0};
     };
 
     struct SdlWindowFunctions : WindowFunctions
@@ -136,10 +181,6 @@ namespace ij
         void Clear() override
         {
             SDL_RenderClear(&_renderer);
-        }
-
-        void SetView(const Rectangle<float> &view) override
-        {
         }
 
         void RenderGui() override
@@ -219,13 +260,13 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    SdlCanvas canvas(*window);
+    SdlTextureManager textures(*renderer);
+    SdlCanvas canvas(*window, *renderer, textures);
     {
         const Vector2f windowSize = AssertCastVector<float>(canvas.GetSize());
         ImGui::GetIO().DisplaySize = ImVec2{windowSize.x, windowSize.y};
     }
 
-    SdlTextureManager textures(*renderer);
     SdlWindowFunctions windowFunctions(*renderer);
     const bool success = RunGame(textures, canvas, assets, windowFunctions);
     ImGui_ImplSDLRenderer_Shutdown();
