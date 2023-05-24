@@ -192,6 +192,14 @@ namespace ij
         void SetView(const Rectangle<float> &view) override
         {
             _viewTopLeft = RoundDown<Int32>(view.Position);
+            const Vector2u windowSize = GetSize();
+            const int returnCode =
+                SDL_RenderSetScale(&_renderer, windowSize.x / view.Size.x, windowSize.y / view.Size.y);
+            if (returnCode != 0)
+            {
+                std::cerr << "SDL_RenderSetScale failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                return;
+            }
         }
 
     private:
@@ -255,6 +263,12 @@ namespace ij
 
         void RenderGui() override
         {
+            const int returnCode = SDL_RenderSetScale(&_renderer, 1, 1);
+            if (returnCode != 0)
+            {
+                std::cerr << "SDL_RenderSetScale failed with " << returnCode << ": " << SDL_GetError() << '\n';
+                return;
+            }
             ImGui::Render();
             ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
         }
