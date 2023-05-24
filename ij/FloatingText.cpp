@@ -3,7 +3,7 @@
 
 ij::FloatingText::FloatingText(Canvas &canvas, const std::string &text, const Vector2f &position, FontId font,
                                RandomNumberGenerator &random)
-    : VisualItem(canvas.CreateText(text, font, 14u,
+    : VisualItem(canvas.CreateText(text, font,
                                    position + Vector2f(AssertCast<float>(20 - random.GenerateInt32(0, 39)),
                                                        AssertCast<float>(-100 + random.GenerateInt32(0, 39))),
                                    Color(255, 0, 0, 255), Color(0, 0, 0, 255), 1))

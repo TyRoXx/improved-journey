@@ -168,11 +168,10 @@ namespace ij
             }
         }
 
-        [[nodiscard]] Text CreateText(const std::string &content, FontId font, UInt32 size, const Vector2f &position,
+        [[nodiscard]] Text CreateText(const std::string &content, FontId font, const Vector2f &position,
                                       Color fillColor, Color outlineColor, float outlineThickness) override
         {
             assert(font == 0);
-            assert(size == 14);
             UniqueSurface textSurface(
                 TTF_RenderUTF8_Shaded(&_font0, content.c_str(), ToSdlColor(fillColor), ToSdlColor(outlineColor)),
                 SDL_FreeSurface);

@@ -181,11 +181,11 @@ namespace ij
             Window.draw(sfmlSprite);
         }
 
-        [[nodiscard]] Text CreateText(const std::string &content, FontId font, UInt32 size, const Vector2f &position,
+        [[nodiscard]] Text CreateText(const std::string &content, FontId font, const Vector2f &position,
                                       Color fillColor, Color outlineColor, float outlineThickness) override
         {
             assert(font == 0);
-            auto instance = std::make_unique<sf::Text>(content, Font0, size);
+            auto instance = std::make_unique<sf::Text>(content, Font0, 14);
             instance->setPosition(ToSfml(position));
             instance->setFillColor(ToSfml(fillColor));
             instance->setOutlineColor(ToSfml(outlineColor));
