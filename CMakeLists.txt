@@ -44,6 +44,8 @@ if(UNIX)
 endif()
 
 if(MSVC)
+    # parallelize the compilation
+    add_definitions(/MP)
     add_definitions(/std:c++20)
     #add_definitions(/WX)
     add_definitions(/Wall)
