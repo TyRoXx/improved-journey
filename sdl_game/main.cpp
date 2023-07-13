@@ -4,7 +4,7 @@
 #include <ij/RunGame.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
-#include <imgui_impl_sdlrenderer.h>
+#include <imgui_impl_sdlrenderer2.h>
 #include <iostream>
 
 namespace ij
@@ -370,7 +370,7 @@ namespace ij
         void UpdateGui(TimeSpan deltaTime) override
         {
             ImGui::GetIO().DeltaTime = AssertCast<float>(deltaTime.Milliseconds) / 1000.0f;
-            ImGui_ImplSDLRenderer_NewFrame();
+            ImGui_ImplSDLRenderer2_NewFrame();
             ImGui::NewFrame();
         }
 
@@ -393,7 +393,7 @@ namespace ij
                 return;
             }
             ImGui::Render();
-            ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
+            ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
         }
 
         void Display() override
@@ -482,7 +482,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (!ImGui_ImplSDLRenderer_Init(renderer.get()))
+    if (!ImGui_ImplSDLRenderer2_Init(renderer.get()))
     {
         std::cerr << "ImGui_ImplSDLRenderer_Init failed\n";
         return 1;
@@ -505,7 +505,7 @@ int main(int argc, char **argv)
 
     SdlWindowFunctions windowFunctions(*window, *renderer);
     const bool success = RunGame(textures, canvas, assets, windowFunctions);
-    ImGui_ImplSDLRenderer_Shutdown();
+    ImGui_ImplSDLRenderer2_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     return !success;
