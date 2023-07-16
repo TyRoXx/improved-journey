@@ -21,6 +21,8 @@ void ij::keyboard::UpdateInput(Input &input, const Event &event)
         case Key::Space:
             input.isAttackPressed = true;
             break;
+        case Key::F1:
+            break;
         }
     }
     else
@@ -41,6 +43,9 @@ void ij::keyboard::UpdateInput(Input &input, const Event &event)
             break;
         case Key::Space:
             input.isAttackPressed = false;
+            break;
+        case Key::F1:
+            input.isDebugModeOn = !input.isDebugModeOn;
             break;
         }
     }

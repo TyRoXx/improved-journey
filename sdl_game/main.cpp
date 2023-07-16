@@ -294,6 +294,8 @@ namespace ij
             return keyboard::Key::D;
         case SDLK_SPACE:
             return keyboard::Key::Space;
+        case SDLK_F1:
+            return keyboard::Key::F1;
         default:
             return std::nullopt;
         }

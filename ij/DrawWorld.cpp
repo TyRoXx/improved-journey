@@ -125,16 +125,19 @@ void ij::DrawWorld(Canvas &canvas, const Camera &camera, const Input &input, Deb
         drawHealthBar(canvas, *enemy);
     }
 
-    canvas.DrawDot(RoundDown<Int32>(player.Logic.Position), Color(0, 255, 0, 255));
-
-    for (const Object *const enemy : visibleEnemies)
+    if (input.isDebugModeOn)
     {
-        canvas.DrawDot(RoundDown<Int32>(enemy->Logic.Position), Color(255, 0, 0, 255));
+        canvas.DrawDot(RoundDown<Int32>(player.Logic.Position), Color(0, 255, 0, 255));
 
-        if (enemy == input.selectedEnemy)
+        for (const Object *const enemy : visibleEnemies)
         {
-            canvas.DrawRectangle(RoundDown<Int32>(enemy->Visuals.GetTopLeftPosition(enemy->Logic.Position)),
-                                 enemy->Visuals.SpriteSize, Color(255, 255, 255, 255), Color(0, 0, 0, 0), 1);
+            canvas.DrawDot(RoundDown<Int32>(enemy->Logic.Position), Color(255, 0, 0, 255));
+
+            if (enemy == input.selectedEnemy)
+            {
+                canvas.DrawRectangle(RoundDown<Int32>(enemy->Visuals.GetTopLeftPosition(enemy->Logic.Position)),
+                                     enemy->Visuals.SpriteSize, Color(255, 255, 255, 255), Color(0, 0, 0, 0), 1);
+            }
         }
     }
 }

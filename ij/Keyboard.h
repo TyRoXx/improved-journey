@@ -11,7 +11,8 @@ namespace ij
             A,
             S,
             D,
-            Space
+            Space,
+            F1
         };
 
         struct Event final

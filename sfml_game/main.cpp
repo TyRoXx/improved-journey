@@ -47,6 +47,8 @@ namespace ij
             return keyboard::Key::D;
         case sf::Keyboard::Space:
             return keyboard::Key::Space;
+        case sf::Keyboard::F1:
+            return keyboard::Key::F1;
         default:
             return std::nullopt;
         }

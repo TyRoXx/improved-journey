@@ -9,5 +9,6 @@ namespace ij
         std::array<bool, 4> isDirectionKeyPressed = {};
         bool isAttackPressed = false;
         Object *selectedEnemy = nullptr;
+        bool isDebugModeOn = false;
     };
 } // namespace ij
