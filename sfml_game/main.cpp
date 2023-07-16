@@ -42,55 +42,61 @@ namespace ij
             if (event.type == sf::Event::Closed)
             {
                 window.close();
+                break;
             }
-            else if (event.type == sf::Event::KeyPressed)
+
+            if (!ImGui::GetIO().WantCaptureKeyboard)
             {
-                switch (event.key.code)
+                if (event.type == sf::Event::KeyPressed)
                 {
-                case sf::Keyboard::W:
-                    input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = true;
-                    break;
-                case sf::Keyboard::A:
-                    input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = true;
-                    break;
-                case sf::Keyboard::S:
-                    input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = true;
-                    break;
-                case sf::Keyboard::D:
-                    input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = true;
-                    break;
-                case sf::Keyboard::Space:
-                    input.isAttackPressed = true;
-                    break;
-                default:
-                    break;
+                    switch (event.key.code)
+                    {
+                    case sf::Keyboard::W:
+                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = true;
+                        break;
+                    case sf::Keyboard::A:
+                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = true;
+                        break;
+                    case sf::Keyboard::S:
+                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = true;
+                        break;
+                    case sf::Keyboard::D:
+                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = true;
+                        break;
+                    case sf::Keyboard::Space:
+                        input.isAttackPressed = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                else if (event.type == sf::Event::KeyReleased)
+                {
+                    switch (event.key.code)
+                    {
+                    case sf::Keyboard::W:
+                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = false;
+                        break;
+                    case sf::Keyboard::A:
+                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = false;
+                        break;
+                    case sf::Keyboard::S:
+                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = false;
+                        break;
+                    case sf::Keyboard::D:
+                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = false;
+                        break;
+                    case sf::Keyboard::Space:
+                        input.isAttackPressed = false;
+                        break;
+                    default:
+                        break;
+                    }
                 }
             }
-            else if (event.type == sf::Event::KeyReleased)
-            {
-                switch (event.key.code)
-                {
-                case sf::Keyboard::W:
-                    input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = false;
-                    break;
-                case sf::Keyboard::A:
-                    input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = false;
-                    break;
-                case sf::Keyboard::S:
-                    input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = false;
-                    break;
-                case sf::Keyboard::D:
-                    input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = false;
-                    break;
-                case sf::Keyboard::Space:
-                    input.isAttackPressed = false;
-                    break;
-                default:
-                    break;
-                }
-            }
-            else if (!ImGui::GetIO().WantCaptureMouse && (event.type == sf::Event::MouseButtonPressed) &&
-                     (event.mouseButton.button == sf::Mouse::Button::Left))
+
+            if (!ImGui::GetIO().WantCaptureMouse && (event.type == sf::Event::MouseButtonPressed) &&
+                (event.mouseButton.button == sf::Mouse::Button::Left))
             {
                 const Vector2f pointInWorld = camera.getWorldFromScreenCoordinates(
                     FromSfml(window.getSize()), Vector2i(event.mouseButton.x, event.mouseButton.y));
