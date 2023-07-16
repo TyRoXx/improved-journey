@@ -10,5 +10,4 @@ namespace ij
         bool isAttackPressed = false;
         Object *selectedEnemy = nullptr;
     };
-
 } // namespace ij

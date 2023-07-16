@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#include <ij/Keyboard.h>
 #include <ij/RunGame.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
@@ -279,6 +280,43 @@ namespace ij
         std::vector<TextSlot> _texts;
     };
 
+    [[nodiscard]] std::optional<keyboard::Key> KeyFromSdl(const SDL_Keycode key)
+    {
+        switch (key)
+        {
+        case SDLK_w:
+            return keyboard::Key::W;
+        case SDLK_a:
+            return keyboard::Key::A;
+        case SDLK_s:
+            return keyboard::Key::S;
+        case SDLK_d:
+            return keyboard::Key::D;
+        case SDLK_SPACE:
+            return keyboard::Key::Space;
+        default:
+            return std::nullopt;
+        }
+    }
+
+    [[nodiscard]] std::optional<keyboard::Event> KeyboardEventFromSdl(const SDL_Event &event)
+    {
+        switch (event.type)
+        {
+        case SDL_KEYDOWN:
+        case SDL_KEYUP: {
+            const std::optional<keyboard::Key> key = KeyFromSdl(event.key.keysym.sym);
+            if (!key)
+            {
+                return std::nullopt;
+            }
+            return keyboard::Event{*key, (event.type == SDL_KEYDOWN)};
+        }
+        default:
+            return std::nullopt;
+        }
+    }
+
     struct SdlWindowFunctions : WindowFunctions
     {
         explicit SdlWindowFunctions(SDL_Window &window, SDL_Renderer &renderer)
@@ -307,51 +345,10 @@ namespace ij
 
                 if (!ImGui::GetIO().WantCaptureKeyboard)
                 {
-                    if (event.type == SDL_KEYDOWN)
+                    const std::optional<keyboard::Event> converted = KeyboardEventFromSdl(event);
+                    if (converted)
                     {
-                        switch (event.key.keysym.sym)
-                        {
-                        case SDLK_w:
-                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = true;
-                            break;
-                        case SDLK_a:
-                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = true;
-                            break;
-                        case SDLK_s:
-                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = true;
-                            break;
-                        case SDLK_d:
-                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = true;
-                            break;
-                        case SDLK_SPACE:
-                            input.isAttackPressed = true;
-                            break;
-                        default:
-                            break;
-                        }
-                    }
-                    else if (event.type == SDL_KEYUP)
-                    {
-                        switch (event.key.keysym.sym)
-                        {
-                        case SDLK_w:
-                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = false;
-                            break;
-                        case SDLK_a:
-                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = false;
-                            break;
-                        case SDLK_s:
-                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = false;
-                            break;
-                        case SDLK_d:
-                            input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = false;
-                            break;
-                        case SDLK_SPACE:
-                            input.isAttackPressed = false;
-                            break;
-                        default:
-                            break;
-                        }
+                        UpdateInput(input, *converted);
                     }
                 }
 

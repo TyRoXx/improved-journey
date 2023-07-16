@@ -16,6 +16,7 @@
 #include <ij/Bot.h>
 #include <ij/DrawWorld.h>
 #include <ij/FloatingText.h>
+#include <ij/Keyboard.h>
 #include <ij/LogicEntity.h>
 #include <ij/Map.h>
 #include <ij/ObjectAnimation.h>
@@ -32,6 +33,43 @@
 
 namespace ij
 {
+    [[nodiscard]] std::optional<keyboard::Key> KeyFromSfml(const sf::Keyboard::Key key)
+    {
+        switch (key)
+        {
+        case sf::Keyboard::W:
+            return keyboard::Key::W;
+        case sf::Keyboard::A:
+            return keyboard::Key::A;
+        case sf::Keyboard::S:
+            return keyboard::Key::S;
+        case sf::Keyboard::D:
+            return keyboard::Key::D;
+        case sf::Keyboard::Space:
+            return keyboard::Key::Space;
+        default:
+            return std::nullopt;
+        }
+    }
+
+    [[nodiscard]] std::optional<keyboard::Event> KeyboardEventFromSfml(const sf::Event &event)
+    {
+        switch (event.type)
+        {
+        case sf::Event::KeyPressed:
+        case sf::Event::KeyReleased: {
+            const std::optional<keyboard::Key> key = KeyFromSfml(event.key.code);
+            if (!key)
+            {
+                return std::nullopt;
+            }
+            return keyboard::Event{*key, (event.type == sf::Event::KeyPressed)};
+        }
+        default:
+            return std::nullopt;
+        }
+    }
+
     void ProcessEvents(Input &input, sf::RenderWindow &window, const Camera &camera, World &world)
     {
         sf::Event event = {};
@@ -47,51 +85,10 @@ namespace ij
 
             if (!ImGui::GetIO().WantCaptureKeyboard)
             {
-                if (event.type == sf::Event::KeyPressed)
+                const std::optional<keyboard::Event> converted = KeyboardEventFromSfml(event);
+                if (converted)
                 {
-                    switch (event.key.code)
-                    {
-                    case sf::Keyboard::W:
-                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = true;
-                        break;
-                    case sf::Keyboard::A:
-                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = true;
-                        break;
-                    case sf::Keyboard::S:
-                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = true;
-                        break;
-                    case sf::Keyboard::D:
-                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = true;
-                        break;
-                    case sf::Keyboard::Space:
-                        input.isAttackPressed = true;
-                        break;
-                    default:
-                        break;
-                    }
-                }
-                else if (event.type == sf::Event::KeyReleased)
-                {
-                    switch (event.key.code)
-                    {
-                    case sf::Keyboard::W:
-                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Up)] = false;
-                        break;
-                    case sf::Keyboard::A:
-                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Left)] = false;
-                        break;
-                    case sf::Keyboard::S:
-                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Down)] = false;
-                        break;
-                    case sf::Keyboard::D:
-                        input.isDirectionKeyPressed[AssertCast<size_t>(Direction::Right)] = false;
-                        break;
-                    case sf::Keyboard::Space:
-                        input.isAttackPressed = false;
-                        break;
-                    default:
-                        break;
-                    }
+                    UpdateInput(input, *converted);
                 }
             }
 
